@@ -1826,7 +1826,9 @@ window.addEventListener("DOMContentLoaded", function () {
       : path + "/";
   })();
   // Свой scope для OneSignal: не конфликтует с корневым sw.js (офлайн-кэш).
-  const ONESIGNAL_SW_DIR = SW_DIR + "push/onesignal/";
+  // Путь задан ЖЁСТКО от корня домена, без относительных путей: на GitHub Pages
+  // приложение живёт в /tamagochi/, и воркер лежит в /tamagochi/push/onesignal/.
+  const ONESIGNAL_SW_DIR = "/tamagochi/push/onesignal/";
   // SDK строит адрес воркера так: (path || "/") + "/" + serviceWorkerPath
   // (ведущие слэши у serviceWorkerPath он срезает). Поэтому передаём ПОЛНЫЙ
   // путь от корня домена и НЕ передаём path — иначе получим двойной префикс.
