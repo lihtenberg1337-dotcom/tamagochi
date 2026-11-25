@@ -1764,6 +1764,10 @@ window.addEventListener("DOMContentLoaded", function () {
   })();
   // Свой scope для OneSignal: не конфликтует с корневым sw.js (офлайн-кэш).
   const ONESIGNAL_SW_DIR = SW_DIR + "push/onesignal/";
+  // SDK строит адрес воркера так: (path || "/") + "/" + serviceWorkerPath
+  // (ведущие слэши у serviceWorkerPath он срезает). Поэтому передаём ПОЛНЫЙ
+  // путь от корня домена и НЕ передаём path — иначе получим двойной префикс.
+  const ONESIGNAL_SW_FILE = ONESIGNAL_SW_DIR + "OneSignalSDKWorker.js";
 
   function pushConfigured() {
     return !!ONESIGNAL_APP_ID && !!ONESIGNAL_REST_KEY;
@@ -1824,16 +1828,15 @@ window.addEventListener("DOMContentLoaded", function () {
       // Клик по «🔔» ждёт именно эту очередь, а не ругается «АПИ не подключён».
       window.OneSignalDeferred.push(async function (OneSignal) {
         try {
-          console.info("OneSignal: init, SW path =", ONESIGNAL_SW_DIR);
+          console.info("OneSignal: init, worker =", ONESIGNAL_SW_FILE, "scope =", ONESIGNAL_SW_DIR);
           await OneSignal.init({
             appId: ONESIGNAL_APP_ID,
             allowLocalhostAsSecureOrigin: true,
-            // SDK склеивает scope с origin и ищет воркер от корня домена,
-            // поэтому явно передаём папку проекта — иначе на GitHub Pages
-            // запрос уйдёт в https://user.github.io/OneSignalSDKWorker.js
-            path: ONESIGNAL_SW_DIR,
+            // serviceWorkerPath — полный путь от корня домена с учётом
+            // репозитория GitHub Pages, иначе SDK грузит
+            // https://user.github.io/OneSignalSDKWorker.js (корень домена).
+            serviceWorkerPath: ONESIGNAL_SW_FILE,
             serviceWorkerParam: { scope: ONESIGNAL_SW_DIR },
-            serviceWorkerPath: "OneSignalSDKWorker.js",
             notifyButton: { enable: false },
             welcomeNotification: { disable: true },
             promptOptions: { slidedown: { enabled: false } }

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'medved-tamagochi-v3';
+const CACHE_NAME = 'medved-tamagochi-v4';
 /* Медведь-Тамагочи — service worker: офлайн-запуск PWA и обновление игры.
-   При любых правках проекта увеличивай номер версии в CACHE_NAME (v3 -> v4 ...). */
+   При любых правках проекта увеличивай номер версии в CACHE_NAME (v4 -> v5 ...). */
 const SHELL = ["./", "./index.html", "./manifest.json", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
