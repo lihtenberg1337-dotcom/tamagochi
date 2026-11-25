@@ -1,6 +1,6 @@
-const CACHE_NAME = 'medved-tamagochi-v4';
+const CACHE_NAME = 'medved-tamagochi-v6';
 /* Медведь-Тамагочи — service worker: офлайн-запуск PWA и обновление игры.
-   При любых правках проекта увеличивай номер версии в CACHE_NAME (v4 -> v5 ...). */
+   При любых правках проекта увеличивай номер версии в CACHE_NAME (v6 -> v7 ...). */
 const SHELL = ["./", "./index.html", "./manifest.json", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -45,17 +45,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Страницы всегда берём из сети (кэш — только запасной вариант),
-  // чтобы обновления игры подхватывались сразу.
+  // Страницы — Network First: сначала всегда идём в сеть за свежим index.html
+  // (с обходом HTTP-кэша), и только если сети нет — отдаём копию из кэша.
+  // Так обновления подхватываются при каждом открытии PWA без ручных действий.
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: "no-store" })
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
+          }
           return res;
         })
-        .catch(() => caches.match("./index.html"))
+        .catch(() =>
+          caches
+            .match("./index.html")
+            .then((cached) => cached || caches.match("./"))
+        )
     );
     return;
   }
