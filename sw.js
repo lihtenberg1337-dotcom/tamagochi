@@ -1,6 +1,6 @@
-const CACHE_NAME = 'medved-tamagochi-v2';
+const CACHE_NAME = 'medved-tamagochi-v3';
 /* Медведь-Тамагочи — service worker: офлайн-запуск PWA и обновление игры.
-   При любых правках проекта увеличивай номер версии в CACHE_NAME (v2 -> v3 ...). */
+   При любых правках проекта увеличивай номер версии в CACHE_NAME (v3 -> v4 ...). */
 const SHELL = ["./", "./index.html", "./manifest.json", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -30,8 +30,20 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
 
   const url = new URL(req.url);
-  // Firebase и прочие внешние запросы не кэшируем.
-  if (url.origin !== self.location.origin) return;
+
+  // Внешние домены (onesignal.com, firebaseio.com / firebasedatabase.app,
+  // gstatic.com / googleapis.com) — ТОЛЬКО сеть, без кэша и без офлайн-заглушек.
+  // Иначе на iPhone в PWA подхватывается устаревший OneSignal SDK и
+  // появляется «АПИ не подключён».
+  if (url.origin !== self.location.origin) {
+    event.respondWith(fetch(req, { cache: "no-store" }));
+    return;
+  }
+
+  // Воркер OneSignal и его папку тоже никогда не кэшируем и не подменяем.
+  if (url.pathname.indexOf("/push/") >= 0 || /OneSignalSDKWorker\.js$/.test(url.pathname)) {
+    return;
+  }
 
   // Страницы всегда берём из сети (кэш — только запасной вариант),
   // чтобы обновления игры подхватывались сразу.

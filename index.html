@@ -1746,12 +1746,21 @@ window.addEventListener("DOMContentLoaded", function () {
     permission: false,
     subscriptionId: null
   };
+  let pushBusy = false;
 
   // Папка проекта: "/repo/" на GitHub Pages, "/" локально.
+  // Всегда С закрывающим слэшем: без него SDK склеит scope в "/repo"
+  // и регистрация воркера падает на iOS Safari.
   const SW_DIR = (function () {
     const path = location.pathname || "/";
-    const cut = path.lastIndexOf("/");
-    return cut >= 0 ? path.slice(0, cut + 1) || "/" : "/";
+    if (!path) return "/";
+    if (path === "/") return "/";
+    if (path.charAt(path.length - 1) === "/") return path;
+    const last = path.slice(path.lastIndexOf("/") + 1);
+    // "/repo" — это папка, "/repo/index.html" — файл.
+    return last.indexOf(".") >= 0
+      ? (path.slice(0, path.lastIndexOf("/") + 1) || "/")
+      : path + "/";
   })();
   // Свой scope для OneSignal: не конфликтует с корневым sw.js (офлайн-кэш).
   const ONESIGNAL_SW_DIR = SW_DIR + "push/onesignal/";
@@ -1775,23 +1784,47 @@ window.addEventListener("DOMContentLoaded", function () {
     return isIosDevice() && !isStandaloneMode();
   }
 
+  const SDK_LOAD_TIMEOUT_MS = 12000;
+  const SDK_ERROR_TEXT = "Не удалось загрузить сервер уведомлений — проверь интернет или VPN";
+
   function loadOneSignal() {
     if (!pushConfigured()) return Promise.resolve(null);
     if (os.loading) return os.loading;
 
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     os.loading = new Promise(function (resolve) {
+      let settled = false;
+      let timer = null;
+
+      function finish(value) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      }
+
+      // Скрипт мог не прийти вообще (сеть, провайдер, VPN) — не висим вечно.
+      timer = setTimeout(function () {
+        if (settled) return;
+        os.error = SDK_ERROR_TEXT;
+        console.warn("OneSignal: SDK не ответил за " + SDK_LOAD_TIMEOUT_MS + " мс");
+        finish(null);
+      }, SDK_LOAD_TIMEOUT_MS);
+
       const script = document.createElement("script");
       script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
       script.defer = true;
       script.onerror = function () {
-        os.error = "sdk";
-        resolve(null);
+        os.error = SDK_ERROR_TEXT;
+        console.warn("OneSignal: OneSignalSDK.page.js не загрузился (сеть/провайдер/VPN)");
+        finish(null);
       };
       document.head.appendChild(script);
 
+      // Клик по «🔔» ждёт именно эту очередь, а не ругается «АПИ не подключён».
       window.OneSignalDeferred.push(async function (OneSignal) {
         try {
+          console.info("OneSignal: init, SW path =", ONESIGNAL_SW_DIR);
           await OneSignal.init({
             appId: ONESIGNAL_APP_ID,
             allowLocalhostAsSecureOrigin: true,
@@ -1807,19 +1840,47 @@ window.addEventListener("DOMContentLoaded", function () {
           });
           os.sdk = OneSignal;
           os.ready = true;
+          os.error = null;
           // Уникальный id игрока в комнате: у напарника он тоже сохранён.
           try { OneSignal.login(myId); } catch (e) { /* noop */ }
           bindOneSignal(OneSignal);
-          resolve(OneSignal);
+          finish(OneSignal);
         } catch (e) {
           os.error = String((e && e.message) || e);
-          console.warn("OneSignal init error:", e);
-          resolve(null);
+          // Точный текст исключения — чтобы в консоли iOS было видно, на чём спотыкаемся.
+          console.error("OneSignal init error:", os.error, e);
+          finish(null);
         }
       });
     });
 
     return os.loading;
+  }
+
+  function pushErrorMessage() {
+    const err = os.error ? String(os.error) : "";
+    if (!err) return SDK_ERROR_TEXT;
+    if (err.indexOf("Can only be used on") >= 0) {
+      return "OneSignal разрешён только для домена из настроек приложения";
+    }
+    return "Уведомления не запустились: " + err.slice(0, 140);
+  }
+
+  // Нативный запрос разрешения. Обязан вызываться СИНХРОННО из обработчика
+  // клика: Safari на iOS показывает системный запрос только внутри
+  // пользовательского жеста, а цепочка .then()/await этот жест теряет.
+  function requestNativePermission() {
+    if (!("Notification" in window) || typeof Notification.requestPermission !== "function") {
+      return Promise.resolve(null);
+    }
+    try {
+      const result = Notification.requestPermission();
+      return result && typeof result.then === "function" ? result : Promise.resolve(result || null);
+    } catch (e) {
+      return new Promise(function (resolve) {
+        try { Notification.requestPermission(resolve); } catch (e2) { resolve(null); }
+      });
+    }
   }
 
   function bindOneSignal(OneSignal) {
@@ -1877,24 +1938,80 @@ window.addEventListener("DOMContentLoaded", function () {
       toast("Сначала добавь сайт на экран Домой в Safari");
       return;
     }
+    if (pushBusy) return;
 
-    loadOneSignal().then(function (OneSignal) {
+    pushBusy = true;
+    const label = els.pushBtn.textContent;
+    els.pushBtn.disabled = true;
+    els.pushBtn.textContent = "⏳ Подключаем уведомления…";
+
+    // 1) Разрешение просим сразу, прямо в обработчике клика (iOS Safari).
+    let asked;
+    if (os.ready && os.sdk) {
+      try {
+        asked = Promise.resolve(os.sdk.Notifications.requestPermission());
+      } catch (e) {
+        asked = requestNativePermission();
+      }
+    } else {
+      asked = requestNativePermission();
+    }
+    asked = Promise.resolve(asked).catch(function () { return null; });
+
+    // 2) Параллельно дожидаемся SDK: если он ещё грузится через
+    //    OneSignalDeferred, просто ждём — без ошибки «АПИ не подключён».
+    Promise.all([loadOneSignal(), asked]).then(function (results) {
+      const OneSignal = results[0];
+      const nativeGranted = results[1] === true;
+
+      const finish = function (ok) {
+        pushBusy = false;
+        els.pushBtn.disabled = false;
+        els.pushBtn.textContent = label;
+        if (OneSignal && OneSignal.Notifications) {
+          os.permission = !!OneSignal.Notifications.permission;
+        } else {
+          os.permission = !!nativeGranted;
+        }
+        renderPushUi();
+        toast(ok
+          ? "Уведомления включены 🔔"
+          : "Без разрешения уведомления не придут — разреши их в настройках сайта");
+      };
+
       if (!OneSignal) {
-        toast(os.error && os.error.indexOf("Can only be used on") === 0
-          ? "OneSignal разрешён только для домена из настроек приложения"
-          : "OneSignal не загрузился — проверь интернет и App ID");
+        pushBusy = false;
+        els.pushBtn.disabled = false;
+        els.pushBtn.textContent = label;
+        renderPushUi();
+        toast(pushErrorMessage());
         return;
       }
-      OneSignal.Notifications.requestPermission().then(function (granted) {
-        os.permission = !!granted;
+
+      if (!OneSignal.Notifications) {
+        finish(false);
+        return;
+      }
+
+      const alreadyGranted = nativeGranted || !!OneSignal.Notifications.permission;
+
+      // 3) Если нативный запрос не сработал — добиваем через SDK в этом же клике.
+      const request = alreadyGranted
+        ? Promise.resolve(true)
+        : Promise.resolve(OneSignal.Notifications.requestPermission()).catch(function (err) {
+            console.error("OneSignal: разрешение не получено:", (err && err.message) || err);
+            return false;
+          });
+
+      request.then(function (granted) {
         if (granted) {
           try { OneSignal.User.PushSubscription.optIn(); } catch (e) { /* noop */ }
           try { OneSignal.login(myId); } catch (e) { /* noop */ }
         }
-        renderPushUi();
-        toast(granted ? "Уведомления включены 🔔" : "Без разрешения пуш не придёт");
-      }).catch(function () {
-        toast("Не удалось запросить разрешение");
+        finish(!!granted);
+      }).catch(function (err) {
+        console.error("OneSignal: ошибка разрешения:", (err && err.message) || err);
+        finish(false);
       });
     });
   }
@@ -1999,7 +2116,15 @@ window.addEventListener("DOMContentLoaded", function () {
     const left = pokeCooldownLeft();
     const nativePermission = "Notification" in window ? Notification.permission : "default";
 
+    // Пока идёт подключение, не перебиваем состояние кнопки.
+    if (pushBusy) {
+      els.pushBtn.hidden = false;
+      els.pushBtn.disabled = true;
+      return;
+    }
+
     els.pushBtn.hidden = granted;
+    // Кнопку не блокируем из-за того, что SDK ещё грузится: клик сам его дождётся.
     els.pushBtn.disabled = nativePermission === "denied";
 
     let hint = "";
@@ -2013,6 +2138,10 @@ window.addEventListener("DOMContentLoaded", function () {
       hint = "Уведомления заблокированы в настройках браузера — разреши их для этого сайта";
     } else if (iosNeedsInstall()) {
       hint = "Сначала добавь сайт на экран Домой в Safari";
+    } else if (os.error) {
+      hint = os.error === SDK_ERROR_TEXT
+        ? "Не удалось загрузить сервер уведомлений — проверь интернет или VPN."
+        : "Уведомления не запустились: " + String(os.error).slice(0, 120);
     } else if (!configured) {
       hint = "Чтобы пуш заработал, впиши ONESIGNAL_APP_ID и ONESIGNAL_REST_KEY в начале скрипта.";
     }
