@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>Медведь-Тамагочи</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#16251a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Медведь" />
+<meta name="description" content="Уютный кликер-тамагочи про медведя: собирай мёд, корми, качай пасеку и играй с другом." />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+<style>
+  :root {
+    --bg: #0b1410;
+    --bg-2: #101d15;
+    --panel: #152219;
+    --line: #22362a;
+    --honey: #f2b83c;
+    --honey-soft: #f7d98a;
+    --green: #6fae74;
+    --text: #e7f0e4;
+    --muted: #93a897;
+    --radius: 18px;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background:
+      radial-gradient(120% 60% at 50% 0%, #1b3122 0%, transparent 60%),
+      radial-gradient(90% 50% at 50% 100%, #14281b 0%, transparent 70%),
+      var(--bg);
+  }
+
+  button,
+  input {
+    font: inherit;
+    color: inherit;
+    border: 0;
+    background: none;
+    touch-action: manipulation;
+  }
+
+  button {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .app {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-width: 520px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  /* ---------- Шапка ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px 8px;
+    flex: 0 0 auto;
+  }
+
+  .honey-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    border-radius: 999px;
+    background: rgba(242, 184, 60, 0.12);
+    border: 1px solid rgba(242, 184, 60, 0.28);
+    color: var(--honey);
+    font-weight: 800;
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+  }
+
+  .honey-pill .icon {
+    font-size: 17px;
+  }
+
+  .mode-chip {
+    padding: 7px 13px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    max-width: 60%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .mode-chip.duo {
+    color: var(--honey-soft);
+    border-color: rgba(242, 184, 60, 0.3);
+    background: rgba(242, 184, 60, 0.08);
+  }
+
+  /* ---------- Скролл-зона ---------- */
+  .main {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 16px calc(120px + env(safe-area-inset-bottom));
+  }
+
+  /* ---------- Медведь ---------- */
+  .hero {
+    text-align: center;
+  }
+
+  .status-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .status-line .stage {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .status-line .lvl {
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(242, 184, 60, 0.14);
+    color: var(--honey);
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  .bear-wrap {
+    position: relative;
+    width: min(62vw, 250px);
+    margin: 4px auto 0;
+    aspect-ratio: 1 / 1.08;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bear-glow {
+    position: absolute;
+    inset: -12%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(242, 184, 60, 0.18) 0%, rgba(242, 184, 60, 0) 65%);
+    pointer-events: none;
+  }
+
+  .bear-btn {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    touch-action: manipulation;
+  }
+
+  .bear {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.45));
+    transition: transform 0.1s ease;
+    will-change: transform;
+  }
+
+  .bear-btn.is-tap .bear {
+    transform: scale(0.93) translateY(6px);
+  }
+
+  .bear.sleeping {
+    animation: breathe 3.6s ease-in-out infinite;
+  }
+
+  .bear .eye {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: blink 6s infinite;
+  }
+
+  .bear.sleeping .eye {
+    animation: none;
+    transform: scaleY(0.12);
+  }
+
+  @keyframes blink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.12); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(4px) scale(1.015, 0.985); }
+  }
+
+  .fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 3;
+  }
+
+  .float {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    color: var(--honey);
+    font-weight: 800;
+    font-size: 20px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    animation: floatUp 0.9s ease-out forwards;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+    22% { opacity: 1; }
+    100% {
+      opacity: 0;
+      transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 74px)) scale(1.12);
+    }
+  }
+
+  .sleep-badge {
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    transform: translateX(-50%);
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(11, 20, 16, 0.85);
+    border: 1px solid var(--line);
+    color: var(--honey-soft);
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    animation: sway 3s ease-in-out infinite;
+  }
+
+  @keyframes sway {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-3px); }
+  }
+
+  .hint {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    min-height: 17px;
+  }
+
+  /* ---------- Полоски ---------- */
+  .bars {
+    margin-top: 16px;
+    display: grid;
+    gap: 10px;
+    text-align: left;
+  }
+
+  .bar-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bar {
+    height: 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  .fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+    width: 0;
+  }
+
+  .fill.energy {
+    background: linear-gradient(90deg, #4f8d59, #8ddc95);
+  }
+
+  .fill.satiety {
+    background: linear-gradient(90deg, #c8763a, #f2b83c);
+  }
+
+  .fill.exp {
+    background: linear-gradient(90deg, #7e6bd6, #b39dfb);
+  }
+
+  /* ---------- Дуо-блок ---------- */
+  .duo {
+    margin-top: 16px;
+    padding: 13px 14px;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--line);
+    text-align: left;
+  }
+
+  .duo-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 9px;
+  }
+
+  .duo-head strong {
+    color: var(--honey-soft);
+    font-size: 13px;
+  }
+
+  .contrib-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .contrib-bar #c1 {
+    background: linear-gradient(90deg, #4f8d59, #8ddc95);
+    transition: width 0.4s ease;
+  }
+
+  .contrib-bar #c2 {
+    background: linear-gradient(90deg, #e6a93c, #f7d98a);
+    transition: width 0.4s ease;
+  }
+
+  .contrib-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 12px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .contrib-legend .p1,
+  .contrib-legend .p2 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+
+  .dot.p1 { background: #8ddc95; }
+  .dot.p2 { background: #f0b842; }
+
+  .log {
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px dashed var(--line);
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .log-line {
+    display: flex;
+    gap: 6px;
+    line-height: 1.35;
+  }
+
+  .log-line b {
+    color: var(--text);
+    font-weight: 600;
+    flex: 0 0 auto;
+  }
+
+  .log-empty {
+    color: #6f8577;
+    font-style: italic;
+  }
+
+  /* ---------- Кнопка приглашения ---------- */
+  .invite {
+    display: block;
+    width: 100%;
+    margin: 16px auto 0;
+    padding: 13px 16px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #f2b83c, #e09a2a);
+    color: #2a1c08;
+    font-weight: 800;
+    font-size: 14.5px;
+    box-shadow: 0 8px 22px rgba(242, 184, 60, 0.16);
+  }
+
+  .invite.duo {
+    background: rgba(242, 184, 60, 0.1);
+    color: var(--honey-soft);
+    border: 1px solid rgba(242, 184, 60, 0.32);
+    box-shadow: none;
+  }
+
+  /* ---------- Вкладки ---------- */
+  .tabbar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 10px 16px calc(env(safe-area-inset-bottom) + 10px);
+    background: linear-gradient(to top, rgba(9, 16, 12, 0.98) 55%, rgba(9, 16, 12, 0));
+    border-top: 1px solid rgba(34, 54, 42, 0.7);
+  }
+
+  .tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 8px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid transparent;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .tab.active {
+    background: rgba(242, 184, 60, 0.13);
+    border-color: rgba(242, 184, 60, 0.34);
+    color: var(--honey-soft);
+  }
+
+  .tab span {
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  /* ---------- Шторка магазина ---------- */
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    z-index: 25;
+    max-height: 62dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    border-radius: 24px 24px 0 0;
+    transform: translateY(112%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .sheet.open {
+    transform: translateY(0);
+  }
+
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 10px;
+    flex: 0 0 auto;
+  }
+
+  .sheet-head h2 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .sheet-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--muted);
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sheet-list {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    margin-bottom: 8px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .item-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    border-radius: 13px;
+    background: rgba(242, 184, 60, 0.1);
+  }
+
+  .item-info {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .item-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+
+  .item-lvl {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(242, 184, 60, 0.14);
+    color: var(--honey);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .item-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+
+  .buy {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 9px 13px;
+    border-radius: 12px;
+    background: var(--honey);
+    color: #2a1c08;
+    font-weight: 800;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    touch-action: manipulation;
+  }
+
+  .buy.locked {
+    background: rgba(255, 255, 255, 0.07);
+    color: #7f9486;
+  }
+
+  /* ---------- Оверлеи ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 20px);
+    background: rgba(6, 12, 9, 0.88);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+  }
+
+  .overlay[hidden] {
+    display: none;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 380px;
+    padding: 26px 22px;
+    border-radius: 26px;
+    background: linear-gradient(180deg, #18291d, #111c16);
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    text-align: center;
+  }
+
+  .card .emoji {
+    font-size: 44px;
+    line-height: 1;
+  }
+
+  .card h1 {
+    margin: 10px 0 6px;
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+
+  .card p {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 15px;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 9px;
+    touch-action: manipulation;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #f2b83c, #e09a2a);
+    color: #2a1c08;
+  }
+
+  .btn-ghost {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+
+  .btn:last-child {
+    margin-bottom: 0;
+  }
+
+  .code-input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 9px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid var(--line);
+    color: var(--honey-soft);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    font-weight: 800;
+    font-size: 17px;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .code-input::placeholder {
+    color: #5f7466;
+    letter-spacing: 2px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 12px;
+    color: #66796c;
+    font-size: 12px;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .error-text {
+    margin: 0 0 10px;
+    color: #f08a72;
+    font-size: 12.5px;
+    min-height: 16px;
+  }
+
+  .share-code {
+    margin: 6px 0 4px;
+    font-size: 38px;
+    font-weight: 900;
+    letter-spacing: 8px;
+    color: var(--honey);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .share-link {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 12px;
+    word-break: break-all;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .note {
+    margin: 12px 0 0;
+    color: #7d9183;
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    transform: translate(-50%, 12px);
+    z-index: 90;
+    max-width: 86vw;
+    padding: 11px 16px;
+    border-radius: 14px;
+    background: rgba(24, 40, 29, 0.97);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-size: 13px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.001s !important;
+      transition-duration: 0.001s !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="honey-pill"><span class="icon">🍯</span><span id="honey">0</span></div>
+    <div class="mode-chip" id="modeChip">Соло</div>
+  </header>
+
+  <main class="main" id="main">
+    <section class="hero">
+      <div class="status-line">
+        <span class="stage" id="stage">Медвежонок</span>
+        <span class="lvl" id="levelNum">ур. 1</span>
+      </div>
+
+      <div class="bear-wrap" id="bearWrap">
+        <div class="bear-glow"></div>
+        <button class="bear-btn" id="bearBtn" aria-label="Погладить медведя и собрать мёд">
+          <svg class="bear" id="bear" viewBox="0 0 240 272" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+            <ellipse cx="120" cy="252" rx="62" ry="10" fill="#000" opacity=".28" />
+            <circle cx="74" cy="60" r="26" fill="#7a4f33" />
+            <circle cx="166" cy="60" r="26" fill="#7a4f33" />
+            <circle cx="74" cy="60" r="13" fill="#c08a5f" />
+            <circle cx="166" cy="60" r="13" fill="#c08a5f" />
+            <ellipse cx="120" cy="202" rx="72" ry="60" fill="#8a5a3b" />
+            <ellipse cx="120" cy="210" rx="45" ry="42" fill="#c99a6d" />
+            <ellipse cx="52" cy="200" rx="20" ry="29" fill="#7a4f33" transform="rotate(14 52 200)" />
+            <ellipse cx="188" cy="200" rx="20" ry="29" fill="#7a4f33" transform="rotate(-14 188 200)" />
+            <circle cx="120" cy="106" r="60" fill="#8a5a3b" />
+            <ellipse cx="120" cy="128" rx="34" ry="26" fill="#d9b08c" />
+            <ellipse class="eye" cx="99" cy="99" rx="7" ry="8.5" fill="#2b1d16" />
+            <ellipse class="eye" cx="141" cy="99" rx="7" ry="8.5" fill="#2b1d16" />
+            <circle cx="101.5" cy="96" r="2.6" fill="#fff" />
+            <circle cx="143.5" cy="96" r="2.6" fill="#fff" />
+            <ellipse cx="120" cy="119" rx="11" ry="8" fill="#2b1d16" />
+            <path d="M120 127v8" stroke="#2b1d16" stroke-width="3" stroke-linecap="round" />
+            <path d="M112 135q8 7 16 0" stroke="#2b1d16" stroke-width="3" fill="none" stroke-linecap="round" />
+            <ellipse cx="83" cy="119" rx="10" ry="6" fill="#e0866d" opacity=".35" />
+            <ellipse cx="157" cy="119" rx="10" ry="6" fill="#e0866d" opacity=".35" />
+          </svg>
+        </button>
+        <div class="fx" id="fx"></div>
+        <div class="sleep-badge" id="sleepBadge" hidden>💤 спит</div>
+      </div>
+
+      <p class="hint" id="tapHint">Тап по медведю — мёд</p>
+
+      <div class="bars">
+        <div class="bar-row">
+          <div class="bar-head"><span>⚡ Энергия</span><span id="energyText">100 / 100</span></div>
+          <div class="bar"><div class="fill energy" id="energyFill"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-head"><span>🍲 Сытость</span><span id="satietyText">100%</span></div>
+          <div class="bar"><div class="fill satiety" id="satietyFill"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-head"><span>✨ Опыт</span><span id="expText">0 / 20</span></div>
+          <div class="bar"><div class="fill exp" id="expFill"></div></div>
+        </div>
+      </div>
+
+      <div class="duo" id="duoBlock" hidden>
+        <div class="duo-head"><span>Вклад игроков</span><strong id="roomLabel"></strong></div>
+        <div class="contrib-bar"><div id="c1" style="width:50%"></div><div id="c2" style="width:50%"></div></div>
+        <div class="contrib-legend" id="contribLegend"></div>
+        <div class="log" id="log"></div>
+      </div>
+
+      <button class="invite" id="inviteBtn">Пригласить друга</button>
+    </section>
+  </main>
+
+  <section class="sheet" id="sheet" aria-label="Меню">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">Уход</h2>
+      <button class="sheet-close" id="sheetClose" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="sheet-list" id="sheetList"></div>
+  </section>
+
+  <nav class="tabbar">
+    <button class="tab" data-tab="care" id="tabCare">🍲 <span>Уход</span></button>
+    <button class="tab" data-tab="upgrade" id="tabUpgrade">🛠 <span>Прокачка</span></button>
+  </nav>
+</div>
+
+<!-- Выбор режима -->
+<div class="overlay" id="onboarding" hidden>
+  <div class="card">
+    <div class="emoji">🐻</div>
+    <h1>Медведь-Тамагочи</h1>
+    <p>Собирай мёд, корми медведя и обустраивай берлогу. Можно в одиночку — или вместе с другом.</p>
+    <button class="btn btn-primary" id="obSolo">🐾 Играть соло</button>
+    <button class="btn btn-ghost" id="obCreate">🤝 Создать комнату для двоих</button>
+    <div class="divider">или войти по коду</div>
+    <input class="code-input" id="obCode" maxlength="6" placeholder="КОД" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+    <p class="error-text" id="obError"></p>
+    <button class="btn btn-ghost" id="obJoin">Войти в комнату</button>
+  </div>
+</div>
+
+<!-- Приглашение -->
+<div class="overlay" id="shareOverlay" hidden>
+  <div class="card">
+    <div class="emoji">🤝</div>
+    <h1>Зови друга в берлогу</h1>
+    <p>Отправь код или ссылку — вы будете видеть одного медведя и копить мёд вместе.</p>
+    <div class="share-code" id="shareCode">-----</div>
+    <div class="share-link" id="shareLink"></div>
+    <button class="btn btn-primary" id="shareCopy">📋 Скопировать ссылку</button>
+    <button class="btn btn-ghost" id="shareClose">Готово</button>
+    <p class="note" id="shareNote"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+window.addEventListener("DOMContentLoaded", function () {
+  "use strict";
+
+  /* ============================================================
+     1) КОНФИГ ПОДКЛЮЧЕНИЯ К БАЗЕ ДАННЫХ
+     ------------------------------------------------------------
+     Вставь свои ключи здесь — больше ничего менять не нужно.
+
+     Firebase (Realtime Database):
+       1. console.firebase.google.com → создать проект
+       2. Realtime Database → Создать базу (режим «тест»)
+       3. Project settings → Your apps → Web app → скопировать config
+       4. Правила для демо/игры (режим «тест» работает лишь 30 дней,
+          поэтому лучше сразу вставить своё правило):
+          { "rules": { "bearRooms": { "$room": { ".read": true, ".write": true } } } }
+
+     Если apiKey или databaseURL пустые — игра работает
+     в локальном демо-режиме (сохранение в localStorage,
+     а «Дуо» синхронизируется между вкладками этого браузера).
+     Чтобы принудительно включить демо: provider: "demo".
+     ============================================================ */
+  const DB_CONFIG = {
+    provider: "firebase", // "firebase" | "demo"
+    firebase: {
+      apiKey: "AIzaSyC8ervum5k4HxagLBJtfNAgmvOYMx7KqvU",
+      authDomain: "medved--tamagochi.firebaseapp.com",
+      // ВАЖНО: адрес зависит от региона, выбранного при создании базы.
+      // США:      https://medved--tamagochi-default-rtdb.firebaseio.com
+      // Европа:   https://medved--tamagochi-default-rtdb.europe-west1.firebasedatabase.app
+      // Азия:     https://medved--tamagochi-default-rtdb.asia-southeast1.firebasedatabase.app
+      databaseURL: "https://medved--tamagochi-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "medved--tamagochi",
+      storageBucket: "medved--tamagochi.firebasestorage.app",
+      messagingSenderId: "601775822516",
+      appId: "1:601775822516:web:1e9659d69d37e1fe81e9e1"
+    }
+  };
+
+  const FIREBASE_READY =
+    DB_CONFIG.provider === "firebase" &&
+    !!DB_CONFIG.firebase.databaseURL &&
+    !!DB_CONFIG.firebase.apiKey &&
+    typeof window.firebase !== "undefined" &&
+    !!window.firebase.database;
+
+  /* ============================================================
+     2) БАЛАНС И КОНТЕНТ
+     ============================================================ */
+  const BALANCE = {
+    baseTap: 1,            // мёд за тап без улучшений
+    tapCost: 2,            // энергия за тап
+    baseMaxEnergy: 100,    // запас энергии без «Берлоги»
+    energyRegenSec: 4,     // 1 энергия за 4 секунды
+    satietyDecaySec: 6 * 3600, // полная шкала сытости за 6 часов
+    duoMultiplier: 1.3,    // наценка в дуо-режиме
+    startSatiety: 85,
+    hiveRate: 0.6,         // мёд/сек за уровень Пасеки
+    offlineCapSec: 2 * 3600
+  };
+
+  const FOODS = [
+    { id: "berries", name: "Ягоды", icon: "🫐", basePrice: 8, satiety: 6, exp: 2, desc: "Лёгкий перекус" },
+    { id: "condensed", name: "Сгущёнка", icon: "🥛", basePrice: 16, satiety: 14, exp: 6, desc: "Сладко и сытно" },
+    { id: "shawarma", name: "Шаурма", icon: "🌯", basePrice: 42, satiety: 28, exp: 15, desc: "Настоящий пир" },
+    { id: "steak", name: "Стейк", icon: "🥩", basePrice: 95, satiety: 45, exp: 32, desc: "Пир хозяина леса" }
+  ];
+
+  const UPGRADES = [
+    {
+      id: "paw", name: "Крепкая лапа", icon: "🐾",
+      basePrice: 40, growth: 1.55, desc: "+1 мёд за тап",
+      effect: function (lvl) { return "+" + lvl + " мёд за тап"; }
+    },
+    {
+      id: "hive", name: "Пасека", icon: "🍯",
+      basePrice: 110, growth: 1.6, desc: "Пассивный доход",
+      effect: function (lvl) { return "+" + (lvl * BALANCE.hiveRate).toFixed(1) + " мёда/сек"; }
+    },
+    {
+      id: "den", name: "Берлога", icon: "🏕", basePrice: 85, growth: 1.5, desc: "+20 к запасу энергии",
+      effect: function (lvl) { return "макс. энергия " + (BALANCE.baseMaxEnergy + 20 * lvl); }
+    },
+    {
+      id: "sleep", name: "Сладкий сон", icon: "🌙",
+      basePrice: 120, growth: 1.58, desc: "+25% к восстановлению энергии",
+      effect: function (lvl) { return "+" + lvl * 25 + "% скорости"; }
+    }
+  ];
+
+  const STAGES = [
+    { lv: 1, name: "Медвежонок" },
+    { lv: 5, name: "Подросток" },
+    { lv: 10, name: "Крепыш" },
+    { lv: 18, name: "Хозяин леса" },
+    { lv: 28, name: "Легенда тайги" }
+  ];
+
+  const SAVE_KEY = "bear:save";
+  const PID_KEY = "bear:pid";
+
+  /* ============================================================
+     3) DOM
+     ============================================================ */
+  const $ = function (id) { return document.getElementById(id); };
+  const els = {
+    main: $("main"),
+    honey: $("honey"),
+    modeChip: $("modeChip"),
+    stage: $("stage"),
+    levelNum: $("levelNum"),
+    bearWrap: $("bearWrap"),
+    bear: $("bear"),
+    bearBtn: $("bearBtn"),
+    fx: $("fx"),
+    sleepBadge: $("sleepBadge"),
+    tapHint: $("tapHint"),
+    energyText: $("energyText"),
+    energyFill: $("energyFill"),
+    satietyText: $("satietyText"),
+    satietyFill: $("satietyFill"),
+    expText: $("expText"),
+    expFill: $("expFill"),
+    duoBlock: $("duoBlock"),
+    roomLabel: $("roomLabel"),
+    c1: $("c1"),
+    c2: $("c2"),
+    contribLegend: $("contribLegend"),
+    log: $("log"),
+    inviteBtn: $("inviteBtn"),
+    sheet: $("sheet"),
+    sheetTitle: $("sheetTitle"),
+    sheetList: $("sheetList"),
+    sheetClose: $("sheetClose"),
+    tabCare: $("tabCare"),
+    tabUpgrade: $("tabUpgrade"),
+    onboarding: $("onboarding"),
+    obSolo: $("obSolo"),
+    obCreate: $("obCreate"),
+    obCode: $("obCode"),
+    obJoin: $("obJoin"),
+    obError: $("obError"),
+    shareOverlay: $("shareOverlay"),
+    shareCode: $("shareCode"),
+    shareLink: $("shareLink"),
+    shareCopy: $("shareCopy"),
+    shareClose: $("shareClose"),
+    shareNote: $("shareNote"),
+    toast: $("toast")
+  };
+
+  /* ============================================================
+     4) УТИЛИТЫ
+     ============================================================ */
+  function num(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function fmt(value) {
+    const n = Math.max(0, num(value));
+    if (n < 1000) {
+      return n >= 100 ? String(Math.round(n)) : String(Math.round(n * 10) / 10);
+    }
+    if (n < 1000000) {
+      return (Math.round(n / 100) / 10).toString().replace(".", ",") + " тыс.";
+    }
+    return (Math.round(n / 100000) / 10).toString().replace(".", ",") + " млн";
+  }
+
+  function plural(n, one, few, many) {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  }
+
+  function randId(length) {
+    let out = "";
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    for (let i = 0; i < length; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    return out;
+  }
+
+  const myId = (function () {
+    try {
+      let id = localStorage.getItem(PID_KEY);
+      if (!id) {
+        id = "p" + randId(8).toLowerCase();
+        localStorage.setItem(PID_KEY, id);
+      }
+      return id;
+    } catch (e) {
+      return "p" + Math.random().toString(36).slice(2, 10);
+    }
+  })();
+
+  let toastTimer = null;
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { els.toast.classList.remove("show"); }, 2200);
+  }
+
+  /* ============================================================
+     5) СОСТОЯНИЕ
+     ============================================================ */
+  function freshState() {
+    return {
+      v: 1,
+      honey: 0,
+      exp: 0,
+      energy: BALANCE.baseMaxEnergy,
+      satiety: BALANCE.startSatiety,
+      mode: "solo",
+      room: null,
+      upgrades: { paw: 0, hive: 0, den: 0, sleep: 0 },
+      players: {},
+      log: [],
+      updatedAt: Date.now(),
+      lastTick: Date.now()
+    };
+  }
+
+  function newPlayer() {
+    return { name: "Игрок 1", taps: 0, honey: 0, joinedAt: Date.now() };
+  }
+
+  function normalize(raw) {
+    const s = freshState();
+    if (!raw || typeof raw !== "object") return s;
+
+    s.honey = Math.max(0, num(raw.honey));
+    s.exp = Math.max(0, num(raw.exp));
+    s.energy = Math.max(0, num(raw.energy));
+    s.satiety = Math.min(100, Math.max(0, num(raw.satiety)));
+    s.mode = raw.mode === "duo" ? "duo" : "solo";
+    s.room = typeof raw.room === "string" && raw.room ? raw.room.slice(0, 8).toUpperCase() : null;
+    s.updatedAt = num(raw.updatedAt) || Date.now();
+    s.lastTick = num(raw.lastTick) || Date.now();
+
+    if (raw.upgrades && typeof raw.upgrades === "object") {
+      Object.keys(s.upgrades).forEach(function (key) {
+        s.upgrades[key] = Math.max(0, Math.floor(num(raw.upgrades[key])));
+      });
+    }
+
+    if (raw.players && typeof raw.players === "object") {
+      Object.keys(raw.players).forEach(function (pid) {
+        const p = raw.players[pid];
+        if (!p || typeof p !== "object") return;
+        s.players[pid] = {
+          name: typeof p.name === "string" ? p.name.slice(0, 16) : "Игрок",
+          taps: Math.max(0, Math.floor(num(p.taps))),
+          honey: Math.max(0, num(p.honey)),
+          joinedAt: num(p.joinedAt) || Date.now()
+        };
+      });
+    }
+
+    if (Array.isArray(raw.log)) {
+      s.log = raw.log
+        .filter(function (entry) { return entry && typeof entry.text === "string"; })
+        .slice(0, 5)
+        .map(function (entry) {
+          return {
+            pid: typeof entry.pid === "string" ? entry.pid : "",
+            name: typeof entry.name === "string" ? entry.name.slice(0, 16) : "Игрок",
+            text: entry.text.slice(0, 90),
+            t: num(entry.t)
+          };
+        });
+    }
+
+    return s;
+  }
+
+  let state = freshState();
+  let activeTab = null;
+  let loadedFromStorage = false;
+  let lastSheetRender = 0;
+  let lastDuoRender = 0;
+  let tapBucket = { honey: 0, taps: 0, since: Date.now() };
+  const sync = { room: null, backend: null, db: null, ref: null, connectedRef: null, channel: null, timer: null, applying: false, online: false, cloudError: false };
+
+  /* ---------- Производные значения ---------- */
+  function maxEnergy() {
+    return BALANCE.baseMaxEnergy + 20 * state.upgrades.den;
+  }
+
+  function energyRegenPerSec() {
+    return (1 / BALANCE.energyRegenSec) * (1 + 0.25 * state.upgrades.sleep);
+  }
+
+  function tapValue() {
+    return BALANCE.baseTap + state.upgrades.paw;
+  }
+
+  function price(basePrice) {
+    return Math.round(basePrice * (state.mode === "duo" ? BALANCE.duoMultiplier : 1));
+  }
+
+  function upgradePrice(upgrade, level) {
+    return price(upgrade.basePrice * Math.pow(upgrade.growth, level));
+  }
+
+  function expNeed(level) {
+    return Math.round(20 * Math.pow(level, 1.5));
+  }
+
+  function levelInfo(exp) {
+    let level = 1;
+    let rest = Math.max(0, num(exp));
+    while (rest >= expNeed(level) && level < 99) {
+      rest -= expNeed(level);
+      level++;
+    }
+    return { level: level, into: rest, need: expNeed(level) };
+  }
+
+  function stageFor(level) {
+    let name = STAGES[0].name;
+    STAGES.forEach(function (stage) { if (level >= stage.lv) name = stage.name; });
+    return name;
+  }
+
+  function playerName() {
+    const me = state.players[myId];
+    return me ? me.name : "Игрок";
+  }
+
+  function sortedPlayers() {
+    return Object.keys(state.players)
+      .map(function (pid) { return Object.assign({ pid: pid }, state.players[pid]); })
+      .sort(function (a, b) { return a.joinedAt - b.joinedAt; });
+  }
+
+  function addLog(text) {
+    state.log.unshift({ pid: myId, name: playerName(), text: text, t: Date.now() });
+    state.log = state.log.slice(0, 5);
+  }
+
+  function addExp(amount) {
+    const before = levelInfo(state.exp).level;
+    state.exp += amount;
+    const after = levelInfo(state.exp).level;
+    if (after > before) {
+      addLog("поднял(а) уровень до " + after);
+      toast("Новый уровень " + after + " — " + stageFor(after));
+    }
+  }
+
+  /* ============================================================
+     6) ХРАНЕНИЕ
+     ============================================================ */
+  function saveLocal() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) {
+      /* приватный режим или переполнение — не критично */
+    }
+  }
+
+  function loadLocal() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      state = normalize(JSON.parse(raw));
+      loadedFromStorage = true;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function simulate(dt) {
+    if (!(dt > 0)) return;
+    const capped = Math.min(dt, BALANCE.offlineCapSec);
+    state.energy = Math.min(maxEnergy(), state.energy + energyRegenPerSec() * capped);
+    if (state.satiety > 0) {
+      const decay = 100 / BALANCE.satietyDecaySec;
+      const awakeTime = Math.min(capped, state.satiety / decay);
+      state.satiety = Math.max(0, state.satiety - decay * capped);
+      if (state.upgrades.hive > 0) {
+        state.honey += state.upgrades.hive * BALANCE.hiveRate * awakeTime;
+      }
+    }
+  }
+
+  /* ============================================================
+     7) СИНХРОНИЗАЦИЯ (Firebase / демо через BroadcastChannel)
+     ============================================================ */
+  function initFirebase() {
+    if (!FIREBASE_READY || sync.db) return !!sync.db;
+    try {
+      if (!window.firebase.apps.length) window.firebase.initializeApp(DB_CONFIG.firebase);
+      sync.db = window.firebase.database();
+      return true;
+    } catch (e) {
+      console.warn("Firebase init error:", e);
+      return false;
+    }
+  }
+
+  function roomRef(code) {
+    return sync.db.ref("bearRooms/" + code);
+  }
+
+  function readLocalRoom(code) {
+    try {
+      const raw = localStorage.getItem("bear:room:" + code);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function readRoom(code) {
+    return new Promise(function (resolve) {
+      let done = false;
+      function finish(value) {
+        if (done) return;
+        done = true;
+        resolve(value);
+      }
+      if (!initFirebase()) return finish(readLocalRoom(code));
+
+      // Если база не создана или недоступна, запрос может висеть вечно —
+      // поэтому ограничиваем ожидание. После таймаута пробуем локальную копию.
+      const timer = setTimeout(function () {
+        sync.cloudError = true;
+        finish(readLocalRoom(code));
+      }, 7000);
+      roomRef(code)
+        .once("value")
+        .then(function (snap) {
+          clearTimeout(timer);
+          sync.cloudError = false;
+          finish(snap && snap.exists() ? snap.val() : null);
+        })
+        .catch(function (e) {
+          clearTimeout(timer);
+          sync.cloudError = true;
+          console.warn("Firebase read error:", (e && e.code) || e);
+          finish(readLocalRoom(code));
+        });
+    });
+  }
+
+  function subscribeRoom(code) {
+    unsubscribeRoom();
+    sync.room = code;
+    state.room = code;
+    state.mode = "duo";
+
+    if (initFirebase()) {
+      sync.backend = "firebase";
+      sync.online = false;
+      sync.ref = roomRef(code);
+
+      // Проверяем именно соединение с базой: если оно не установилось за 7 секунд
+      // (например, база ещё не создана), переходим в локальный режим.
+      const guard = setTimeout(function () {
+        if (!sync.online) fallbackToLocalRoom(code);
+      }, 7000);
+
+      sync.connectedRef = sync.db.ref(".info/connected");
+      sync.connectedRef.on("value", function (snap) {
+        if (snap.val() !== true) return;
+        sync.online = true;
+        clearTimeout(guard);
+      });
+
+      sync.ref.on("value", function (snap) {
+        const remote = snap.val();
+        if (remote) applyRemote(remote);
+      }, function (error) {
+        clearTimeout(guard);
+        console.warn("Firebase listen error:", (error && error.code) || error);
+        fallbackToLocalRoom(code);
+      });
+      sync.ref.once("value").then(function (snap) {
+        if (!snap.exists()) pushNow();
+      }).catch(function (e) { console.warn("Room write error:", (e && e.code) || e); });
+    } else {
+      sync.backend = "demo";
+      if (typeof BroadcastChannel !== "undefined") {
+        sync.channel = new BroadcastChannel("bear-room-" + code);
+        sync.channel.onmessage = function (event) {
+          if (event.data && event.data.type === "state") applyRemote(event.data.state);
+        };
+      }
+      const existing = readLocalRoom(code);
+      if (existing) applyRemote(existing);
+    }
+  }
+
+  function fallbackToLocalRoom(code) {
+    if (sync.backend === "demo") return;
+    if (sync.ref) {
+      try { sync.ref.off(); } catch (e) { /* noop */ }
+    }
+    if (sync.connectedRef) {
+      try { sync.connectedRef.off(); } catch (e) { /* noop */ }
+    }
+    sync.ref = null;
+    sync.connectedRef = null;
+    sync.backend = "demo";
+    sync.room = code;
+
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        sync.channel = new BroadcastChannel("bear-room-" + code);
+        sync.channel.onmessage = function (event) {
+          if (event.data && event.data.type === "state") applyRemote(event.data.state);
+        };
+      } catch (e) { /* noop */ }
+    }
+
+    const existing = readLocalRoom(code);
+    if (existing) applyRemote(existing);
+    pushNow();
+    toast("Облако недоступно — комната работает только в этом браузере");
+  }
+
+  function unsubscribeRoom() {
+    if (sync.ref) {
+      try { sync.ref.off(); } catch (e) { /* noop */ }
+    }
+    if (sync.connectedRef) {
+      try { sync.connectedRef.off(); } catch (e) { /* noop */ }
+    }
+    sync.connectedRef = null;
+    if (sync.channel) {
+      try { sync.channel.close(); } catch (e) { /* noop */ }
+    }
+    sync.ref = null;
+    sync.channel = null;
+    sync.backend = null;
+  }
+
+  function applyRemote(raw) {
+    if (!raw || typeof raw !== "object") return;
+    const remote = normalize(raw);
+    if (sync.room && remote.room && remote.room !== sync.room) return;
+    if (remote.updatedAt <= state.updatedAt) return;
+
+    // Переносим только СВОЮ запись: игроки из прошлой комнаты в этой не участвуют.
+    const me = state.players[myId];
+    state = remote;
+    if (me && !state.players[myId]) state.players[myId] = me;
+    if (!state.players[myId]) state.players[myId] = newPlayer();
+    state.lastTick = Date.now();
+    state.mode = "duo";
+    if (sync.room) state.room = sync.room;
+
+    renderAll();
+  }
+
+  function push() {
+    clearTimeout(sync.timer);
+    sync.timer = setTimeout(pushNow, 300);
+  }
+
+  function pushNow() {
+    state.updatedAt = Date.now();
+    saveLocal();
+
+    if (!sync.room) return;
+
+    if (sync.backend === "firebase" && sync.ref) {
+      try {
+        sync.ref.set(JSON.parse(JSON.stringify(state))).catch(function (e) {
+          console.warn("Firebase save error:", e);
+        });
+      } catch (e) {
+        console.warn("Firebase save error:", e);
+      }
+      return;
+    }
+
+    try {
+      localStorage.setItem("bear:room:" + sync.room, JSON.stringify(state));
+    } catch (e) { /* noop */ }
+    if (sync.channel) {
+      try {
+        sync.channel.postMessage({ type: "state", state: JSON.parse(JSON.stringify(state)) });
+      } catch (e) { /* noop */ }
+    }
+  }
+
+  function ensureMe() {
+    if (state.players[myId]) return;
+    const used = Object.keys(state.players).map(function (pid) { return state.players[pid].name; });
+    let name = "Игрок 1";
+    for (let i = 1; i <= 8; i++) {
+      if (!used.includes("Игрок " + i)) { name = "Игрок " + i; break; }
+    }
+    state.players[myId] = { name: name, taps: 0, honey: 0, joinedAt: Date.now() };
+  }
+
+  function roomLink(code) {
+    const base = location.origin && location.origin !== "null"
+      ? location.origin + location.pathname
+      : location.href.split("?")[0].split("#")[0];
+    return base + "?room=" + code;
+  }
+
+  /* ============================================================
+     8) ДЕЙСТВИЯ
+     ============================================================ */
+  let lastLowToast = 0;
+
+  function onBearTap(event) {
+    event.preventDefault();
+    const now = Date.now();
+    const cost = BALANCE.tapCost;
+
+    if (state.energy < cost) {
+      els.bearBtn.classList.add("is-tap");
+      setTimeout(function () { els.bearBtn.classList.remove("is-tap"); }, 110);
+      if (now - lastLowToast > 2500) {
+        toast("Медведь устал — энергия восстанавливается");
+        lastLowToast = now;
+      }
+      return;
+    }
+
+    state.energy -= cost;
+    const gain = tapValue();
+    state.honey += gain;
+
+    ensureMe();
+    state.players[myId].taps += 1;
+    state.players[myId].honey += gain;
+    tapBucket.honey += gain;
+    tapBucket.taps += 1;
+
+    if (sync.room && now - lastDuoRender > 400) {
+      lastDuoRender = now;
+      renderDuo();
+    }
+
+    const rect = els.bearWrap.getBoundingClientRect();
+    const x = (event.clientX || rect.left + rect.width / 2) - rect.left;
+    const y = (event.clientY || rect.top + rect.height / 2) - rect.top;
+    floatText("+" + gain, x, y);
+
+    els.bearBtn.classList.add("is-tap");
+    setTimeout(function () { els.bearBtn.classList.remove("is-tap"); }, 110);
+
+    renderCore();
+    push();
+  }
+
+  function floatText(text, x, y) {
+    const el = document.createElement("div");
+    el.className = "float";
+    el.textContent = text;
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.style.setProperty("--dx", (Math.random() * 46 - 23).toFixed(0) + "px");
+    els.fx.appendChild(el);
+    setTimeout(function () { el.remove(); }, 900);
+  }
+
+  function eat(foodId) {
+    const food = FOODS.find(function (item) { return item.id === foodId; });
+    if (!food) return;
+    const cost = price(food.basePrice);
+    if (state.honey < cost) {
+      toast("Не хватает мёда — собери ещё");
+      return;
+    }
+    state.honey -= cost;
+    state.satiety = Math.min(100, state.satiety + food.satiety);
+    addExp(food.exp);
+    addLog("покормил(а): " + food.name);
+    push();
+    saveLocal();
+    renderAll();
+  }
+
+  function buyUpgrade(upgradeId) {
+    const upgrade = UPGRADES.find(function (item) { return item.id === upgradeId; });
+    if (!upgrade) return;
+    const level = state.upgrades[upgrade.id] || 0;
+    const cost = upgradePrice(upgrade, level);
+    if (state.honey < cost) {
+      toast("Не хватает мёда — собери ещё");
+      return;
+    }
+    state.honey -= cost;
+    state.upgrades[upgrade.id] = level + 1;
+    if (upgrade.id === "den") state.energy = Math.min(maxEnergy(), state.energy + 20);
+    addLog("улучшил(а): " + upgrade.name + " ур. " + (level + 1));
+    push();
+    saveLocal();
+    renderAll();
+  }
+
+  function createRoom() {
+    const code = randId(5);
+    ensureMe();
+    // Новая комната начинается только со своего игрока — чужие записи не переносим.
+    Object.keys(state.players).forEach(function (pid) {
+      if (pid !== myId) delete state.players[pid];
+    });
+    state.mode = "duo";
+    state.room = code;
+    state.updatedAt = Date.now();
+    subscribeRoom(code);
+    try { history.replaceState(null, "", roomLink(code)); } catch (e) { /* noop */ }
+    pushNow();
+    saveLocal();
+    renderAll();
+    openShare();
+  }
+
+  function joinRoom(code, silent) {
+    const clean = String(code || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase();
+    if (clean.length < 4) {
+      if (!silent) els.obError.textContent = "Код состоит из 4–6 символов";
+      return;
+    }
+    els.obError.textContent = "Ищем берлогу…";
+
+    readRoom(clean).then(function (remote) {
+      if (!remote) {
+        els.obError.textContent = sync.cloudError
+          ? "Облако не отвечает — проверь базу Firebase"
+          : "Комната не найдена — проверь код";
+        if (silent) openOnboarding();
+        return;
+      }
+      const remoteState = normalize(remote);
+      const me = state.players[myId];
+      state = remoteState;
+      if (me && !state.players[myId]) state.players[myId] = me;
+      ensureMe();
+      state.mode = "duo";
+      state.room = clean;
+      state.lastTick = Date.now();
+      subscribeRoom(clean);
+      els.obError.textContent = "";
+      closeOnboarding();
+      try { history.replaceState(null, "", roomLink(clean)); } catch (e) { /* noop */ }
+      pushNow();
+      saveLocal();
+      renderAll();
+      toast("Ты в берлоге " + clean);
+    });
+  }
+
+  /* ============================================================
+     9) РЕНДЕР
+     ============================================================ */
+  function renderCore() {
+    const info = levelInfo(state.exp);
+    els.honey.textContent = fmt(state.honey);
+    els.stage.textContent = stageFor(info.level);
+    els.levelNum.textContent = "ур. " + info.level;
+
+    const maxE = maxEnergy();
+    const energyPct = Math.min(100, (state.energy / maxE) * 100);
+    els.energyFill.style.width = energyPct.toFixed(1) + "%";
+    els.energyText.textContent = Math.floor(state.energy) + " / " + maxE + " · +1/" + (BALANCE.energyRegenSec / (1 + 0.25 * state.upgrades.sleep)).toFixed(1) + "с";
+
+    els.satietyFill.style.width = Math.max(0, Math.min(100, state.satiety)).toFixed(1) + "%";
+    els.satietyText.textContent = Math.round(state.satiety) + "%";
+
+    els.expFill.style.width = Math.min(100, (info.into / info.need) * 100).toFixed(1) + "%";
+    els.expText.textContent = Math.floor(info.into) + " / " + info.need;
+
+    const sleeping = state.satiety <= 0.4;
+    els.bear.classList.toggle("sleeping", sleeping);
+    els.sleepBadge.hidden = !sleeping;
+    els.tapHint.textContent = sleeping
+      ? "Медведь спит — покорми его во вкладке «Уход»"
+      : "Тап = +" + tapValue() + " мёда · энергия −" + BALANCE.tapCost;
+
+    if (state.mode === "duo") {
+      els.modeChip.textContent = "🤝 Дуо · " + (state.room || "");
+      els.modeChip.classList.add("duo");
+      els.inviteBtn.textContent = "Комната " + (state.room || "") + " · пригласить друга";
+      els.inviteBtn.classList.add("duo");
+    } else {
+      els.modeChip.textContent = "🐾 Соло";
+      els.modeChip.classList.remove("duo");
+      els.inviteBtn.textContent = "Пригласить друга";
+      els.inviteBtn.classList.remove("duo");
+    }
+  }
+
+  function renderDuo() {
+    const duo = state.mode === "duo";
+    els.duoBlock.hidden = !duo;
+    if (!duo) return;
+
+    const players = sortedPlayers();
+    const total = players.reduce(function (sum, player) { return sum + player.honey; }, 0);
+    let p1 = 50;
+    if (total > 0 && players.length > 1) {
+      p1 = Math.round((players[0].honey / total) * 100);
+      p1 = Math.max(0, Math.min(100, p1));
+    } else if (total > 0) {
+      p1 = 100;
+    }
+
+    els.c1.style.width = p1 + "%";
+    els.c2.style.width = (100 - p1) + "%";
+    els.roomLabel.textContent = "код " + (state.room || "");
+
+    els.contribLegend.innerHTML = "";
+    if (players.length === 0) {
+      const span = document.createElement("span");
+      span.textContent = "Пока никого нет";
+      els.contribLegend.appendChild(span);
+    } else {
+      players.slice(0, 2).forEach(function (player, index) {
+        const wrap = document.createElement("span");
+        wrap.className = index === 0 ? "p1" : "p2";
+        const dot = document.createElement("i");
+        dot.className = "dot " + (index === 0 ? "p1" : "p2");
+        const label = document.createElement("span");
+        const share = index === 0 ? p1 : 100 - p1;
+        const honeyPart = total > 0 ? fmt(player.honey) : "0";
+        label.textContent = player.name + ": " + share + "% (" + honeyPart + " мёда)";
+        wrap.appendChild(dot);
+        wrap.appendChild(label);
+        els.contribLegend.appendChild(wrap);
+      });
+      if (players.length === 1) {
+        const wait = document.createElement("span");
+        wait.className = "p2";
+        wait.textContent = "Ждём второго игрока…";
+        els.contribLegend.appendChild(wait);
+      }
+    }
+
+    els.log.innerHTML = "";
+    if (state.log.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "log-empty";
+      empty.textContent = "Здесь появятся последние 5 действий";
+      els.log.appendChild(empty);
+    } else {
+      state.log.slice(0, 5).forEach(function (entry) {
+        const line = document.createElement("div");
+        line.className = "log-line";
+        const who = document.createElement("b");
+        who.textContent = entry.name + ":";
+        const text = document.createElement("span");
+        text.textContent = entry.text;
+        line.appendChild(who);
+        line.appendChild(text);
+        els.log.appendChild(line);
+      });
+    }
+  }
+
+  function renderInvite() {
+    if (state.mode === "duo") {
+      els.inviteBtn.classList.add("duo");
+      els.inviteBtn.textContent = "Комната " + (state.room || "") + " · пригласить друга";
+    } else {
+      els.inviteBtn.classList.remove("duo");
+      els.inviteBtn.textContent = "Пригласить друга";
+    }
+  }
+
+  function makeButton(label, locked, onClick) {
+    const btn = document.createElement("button");
+    btn.className = "buy" + (locked ? " locked" : "");
+    btn.textContent = label;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function renderSheet() {
+    if (!activeTab) return;
+    lastSheetRender = Date.now();
+    const care = activeTab === "care";
+    els.sheetTitle.textContent = care ? "Уход" : "Прокачка";
+    els.sheetList.innerHTML = "";
+
+    if (care) {
+      FOODS.forEach(function (food) {
+        const cost = price(food.basePrice);
+        const item = document.createElement("div");
+        item.className = "item";
+
+        const icon = document.createElement("div");
+        icon.className = "item-icon";
+        icon.textContent = food.icon;
+
+        const info = document.createElement("div");
+        info.className = "item-info";
+        const name = document.createElement("div");
+        name.className = "item-name";
+        name.textContent = food.name;
+        const sub = document.createElement("div");
+        sub.className = "item-sub";
+        sub.textContent = "+" + food.satiety + " сытости · +" + food.exp + " опыта · " + food.desc;
+        info.appendChild(name);
+        info.appendChild(sub);
+
+        item.appendChild(icon);
+        item.appendChild(info);
+        item.appendChild(makeButton("🍯 " + cost, state.honey < cost, function () { eat(food.id); }));
+        els.sheetList.appendChild(item);
+      });
+    } else {
+      UPGRADES.forEach(function (upgrade) {
+        const level = state.upgrades[upgrade.id] || 0;
+        const cost = upgradePrice(upgrade, level);
+
+        const item = document.createElement("div");
+        item.className = "item";
+
+        const icon = document.createElement("div");
+        icon.className = "item-icon";
+        icon.textContent = upgrade.icon;
+
+        const info = document.createElement("div");
+        info.className = "item-info";
+        const name = document.createElement("div");
+        name.className = "item-name";
+        name.textContent = upgrade.name;
+        const lvl = document.createElement("span");
+        lvl.className = "item-lvl";
+        lvl.textContent = "ур. " + level;
+        name.appendChild(lvl);
+        const sub = document.createElement("div");
+        sub.className = "item-sub";
+        sub.textContent = upgrade.desc + (level > 0 ? " · сейчас: " + upgrade.effect(level) : "");
+        info.appendChild(name);
+        info.appendChild(sub);
+
+        item.appendChild(icon);
+        item.appendChild(info);
+        item.appendChild(makeButton("🍯 " + cost, state.honey < cost, function () { buyUpgrade(upgrade.id); }));
+        els.sheetList.appendChild(item);
+      });
+    }
+  }
+
+  function renderAll() {
+    renderCore();
+    renderInvite();
+    renderDuo();
+    renderSheet();
+  }
+
+  /* ============================================================
+     10) ВКЛАДКИ И ШТОРКА
+     ============================================================ */
+  function openTab(tab) {
+    activeTab = tab;
+    els.tabCare.classList.toggle("active", tab === "care");
+    els.tabUpgrade.classList.toggle("active", tab === "upgrade");
+    renderSheet();
+    els.sheet.classList.add("open");
+  }
+
+  function closeSheet() {
+    activeTab = null;
+    els.sheet.classList.remove("open");
+    els.tabCare.classList.remove("active");
+    els.tabUpgrade.classList.remove("active");
+  }
+
+  els.tabCare.addEventListener("click", function () {
+    if (activeTab === "care") closeSheet(); else openTab("care");
+  });
+  els.tabUpgrade.addEventListener("click", function () {
+    if (activeTab === "upgrade") closeSheet(); else openTab("upgrade");
+  });
+  els.sheetClose.addEventListener("click", closeSheet);
+
+  /* ============================================================
+     11) ОВЕРЛЕИ
+     ============================================================ */
+  function openOnboarding() {
+    els.onboarding.hidden = false;
+  }
+
+  function closeOnboarding() {
+    els.onboarding.hidden = true;
+  }
+
+  function openShare() {
+    const code = state.room || "";
+    const link = roomLink(code);
+    els.shareCode.textContent = code;
+    els.shareLink.textContent = link;
+    els.shareNote.textContent = sync.backend === "firebase"
+      ? "Синхронизация через Firebase Realtime Database."
+      : "Демо-режим без ключей: друг может открыть ссылку во второй вкладке этого браузера. Добавь ключи Firebase в начале скрипта — и комната заработает в интернете.";
+    els.shareOverlay.hidden = false;
+  }
+
+  function closeShare() {
+    els.shareOverlay.hidden = true;
+  }
+
+  els.obSolo.addEventListener("click", function () {
+    state.mode = "solo";
+    state.room = null;
+    ensureMe();
+    state.lastTick = Date.now();
+    closeOnboarding();
+    saveLocal();
+    renderAll();
+    toast("Уютной игры!");
+  });
+
+  els.obCreate.addEventListener("click", function () {
+    closeOnboarding();
+    ensureMe();
+    state.mode = "solo";
+    createRoom();
+  });
+
+  els.obJoin.addEventListener("click", function () { joinRoom(els.obCode.value, false); });
+  els.obCode.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") joinRoom(els.obCode.value, false);
+  });
+
+  els.inviteBtn.addEventListener("click", function () {
+    if (state.mode === "duo" && state.room) {
+      openShare();
+    } else {
+      createRoom();
+    }
+  });
+
+  els.shareClose.addEventListener("click", closeShare);
+
+  els.shareCopy.addEventListener("click", function () {
+    const link = roomLink(state.room || "");
+    const done = function () { toast("Ссылка скопирована"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(done).catch(function () { fallbackCopy(link, done); });
+    } else {
+      fallbackCopy(link, done);
+    }
+  });
+
+  function fallbackCopy(text, done) {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand("copy"); done(); } catch (e) { toast("Не удалось скопировать"); }
+    area.remove();
+  }
+
+  els.onboarding.addEventListener("click", function (event) {
+    if (event.target === els.onboarding) closeOnboarding();
+  });
+  els.shareOverlay.addEventListener("click", function (event) {
+    if (event.target === els.shareOverlay) closeShare();
+  });
+
+  /* ============================================================
+     12) ИГРОВОЙ ЦИКЛ
+     ============================================================ */
+  function tick() {
+    const now = Date.now();
+    const dt = Math.min(5, (now - state.lastTick) / 1000);
+    state.lastTick = now;
+
+    simulate(dt);
+
+    if (tapBucket.honey > 0 && now - tapBucket.since > 6000) {
+      addLog(
+        "собрал(а) " + Math.round(tapBucket.honey) + " мёда (" + tapBucket.taps + " " +
+        plural(tapBucket.taps, "тап", "тапа", "тапов") + ")"
+      );
+      tapBucket = { honey: 0, taps: 0, since: now };
+      if (state.mode === "duo") renderDuo();
+    }
+
+    renderCore();
+
+    if (activeTab && now - lastSheetRender > 900) renderSheet();
+    if (state.mode === "duo" && sync.room && now - lastDuoRender > 1500) {
+      lastDuoRender = now;
+      renderDuo();
+    }
+  }
+
+  /* ============================================================
+     13) СТАРТ
+     ============================================================ */
+  function boot() {
+    loadLocal();
+    ensureMe();
+
+    const params = new URLSearchParams(location.search);
+    const roomParam = (params.get("room") || "").toUpperCase();
+    const savedRoom = state.mode === "duo" && state.room ? state.room : null;
+
+    if (savedRoom) {
+      state.room = savedRoom;
+      state.mode = "duo";
+      subscribeRoom(savedRoom);
+      if (roomParam && roomParam !== savedRoom) {
+        joinRoom(roomParam, true);
+      }
+    } else if (roomParam) {
+      joinRoom(roomParam, true);
+    } else if (!loadedFromStorage) {
+      openOnboarding();
+    }
+
+    const now = Date.now();
+    if (state.lastTick) simulate((now - state.lastTick) / 1000);
+    state.lastTick = now;
+
+    renderAll();
+    setInterval(tick, 250);
+
+    setTimeout(function () {
+      els.main.scrollTop = 0;
+    }, 50);
+  }
+
+  els.bearBtn.addEventListener("pointerdown", onBearTap);
+  els.bearBtn.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") {
+      pushNow();
+    } else {
+      const now = Date.now();
+      simulate((now - state.lastTick) / 1000);
+      state.lastTick = now;
+      renderAll();
+    }
+  });
+
+  window.addEventListener("beforeunload", function () { pushNow(); });
+
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* офлайн-кэш не критичен */ });
+    });
+  }
+
+  boot();
+});
+</script>
+</body>
+</html>
