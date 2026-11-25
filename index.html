@@ -2,14 +2,50 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <script>
-  /* ЭКСТРЕННЫЙ СБРОС (до загрузки остальных скриптов).
-     Срабатывает, если открыли ?reset=1 или у игрока в localStorage старая версия PWA:
-     удаляем все кэши, снимаем старые service worker'ы и перезагружаемся на чистый URL,
-     чтобы браузер гарантированно скачал свежий index.html с сервера. */
+  /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
+     1) При каждом открытии проверяет версию: если она не v8 — чистит ВСЕ кэши,
+        снимает все сторонние service worker'ы (кроме OneSignal) и один раз
+        перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
+     2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
+        "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v6";
+    var APP_VERSION = "v8";
     var VERSION_KEY = "bear:app-version";
+    var ONESIGNAL_DIR = "/tamagochi/";
+    var ONESIGNAL_FILE = "/tamagochi/OneSignalSDKWorker.js";
+
+    // ---- 1. Жёсткая привязка OneSignal SW к /tamagochi/ ----
+    try {
+      var sw = navigator.serviceWorker;
+      if (sw && typeof sw.register === "function") {
+        var originalRegister = sw.register.bind(sw);
+        sw.register = function (scriptURL, options) {
+          var raw = String(scriptURL || "");
+          if (!/onesignal/i.test(raw)) return originalRegister(scriptURL, options);
+
+          var opts = {};
+          if (options) for (var key in options) opts[key] = options[key];
+
+          var pathname = "";
+          try { pathname = new URL(raw, location.href).pathname; } catch (err) { pathname = ""; }
+          if (pathname !== ONESIGNAL_FILE) {
+            if (window.console) console.warn("OneSignal SW: путь", raw, "→", ONESIGNAL_FILE);
+            raw = ONESIGNAL_FILE;
+          }
+          if (!opts.scope || opts.scope === "/" || opts.scope === location.origin + "/") {
+            if (window.console) console.warn("OneSignal SW: scope", opts.scope, "→", ONESIGNAL_DIR);
+            opts.scope = ONESIGNAL_DIR;
+          }
+          return originalRegister(raw, opts);
+        };
+      }
+    } catch (err) {}
+
+    // ---- 2. Автоматический сброс старого кэша / воркеров ----
     var params;
     try {
       params = new URLSearchParams(location.search);
@@ -19,24 +55,25 @@
 
     var forced = params.get("reset") === "1";
     var stored = null;
+    var canStore = false;
     try {
       stored = localStorage.getItem(VERSION_KEY);
+      localStorage.setItem("bear:probe", "1");
+      localStorage.removeItem("bear:probe");
+      canStore = true;
     } catch (err) {}
+    if (!forced && stored === APP_VERSION) return;
+    // Защита от цикла только если записать версию невозможно (приватный режим Safari).
+    if (!forced && !canStore && params.has("v")) return;
 
-    var storedNum = stored ? parseInt(String(stored).replace(/^v/i, ""), 10) : 0;
-    var actualNum = parseInt(APP_VERSION.replace(/^v/i, ""), 10);
-    if (isNaN(storedNum)) storedNum = 0;
-    if (!forced && storedNum >= actualNum) return;
-
-    // Адрес после перезагрузки: только ?room=… (если был) + случайный ?v=…
-    var clean = new URL(location.href);
+    // Адрес после перезагрузки: только ?room=… (если был) + ?v=<время>.
+    var target = new URL(location.href);
     var room = params.get("room") || "";
-    clean.search = "";
-    if (room) clean.searchParams.set("room", room);
-    clean.searchParams.set("v", String(Date.now()) + Math.random().toString(36).slice(2, 8));
-    var target = clean.toString();
+    target.search = "";
+    if (room) target.searchParams.set("room", room);
+    target.searchParams.set("v", String(Date.now()));
 
-    if (window.console && console.info) console.info("Bear reset: старый кэш/воркеры сбрасываются →", target);
+    if (window.console && console.info) console.info("Bear reset →", target.toString());
 
     (async function () {
       try {
@@ -51,7 +88,15 @@
       try {
         if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
           var regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+          await Promise.all(
+            regs.map(function (reg) {
+              var worker = reg.active || reg.installing || reg.waiting;
+              var url = (worker && worker.scriptURL) || "";
+              // Воркер OneSignal не трогаем — иначе пуши отваливаются.
+              if (/onesignal/i.test(url)) return null;
+              return reg.unregister();
+            })
+          );
         }
       } catch (err) {
         if (window.console) console.warn("Bear reset: service worker", err);
@@ -61,7 +106,7 @@
         localStorage.setItem(VERSION_KEY, APP_VERSION);
       } catch (err) {}
 
-      location.replace(target);
+      location.replace(target.toString());
     })();
   })();
 </script>
@@ -1194,11 +1239,10 @@ window.addEventListener("DOMContentLoaded", function () {
      но если проект станет публичным — отправку лучше перенести
      на свой прокси (например, Cloudflare Worker).
 
-     Service worker OneSignal лежит в подпапке push/onesignal/:
-     браузер держит один воркер на scope, а sw.js уже занимает
-     корень проекта (офлайн-кэш PWA). Пути ниже считаются от папки
-     проекта, поэтому на GitHub Pages (user.github.io/repo/) файл
-     регистрируется из /repo/, а не из корня домена github.io.
+     Service worker OneSignal лежит в корне проекта:
+     /tamagochi/OneSignalSDKWorker.js со scope /tamagochi/ — ровно то,
+     что разрешает браузер (scope не может быть выше папки файла).
+     Кэширующий sw.js больше не регистрируется: игра всегда онлайн.
      ------------------------------------------------------------ */
   const ONESIGNAL_APP_ID = "b9c0ccd4-5fae-4d18-8ba6-ac385e7ecc6c";
   const ONESIGNAL_REST_KEY = "os_v2_app_xhamzvc7vzgrrc5gvq4f47wmns2c3bviq6pekse6nlg6l3z65bijymlzntaq5apmueijiyl4ejqy2l5y4prkhmfzlamclskqish4meq";
@@ -1825,10 +1869,10 @@ window.addEventListener("DOMContentLoaded", function () {
       ? (path.slice(0, path.lastIndexOf("/") + 1) || "/")
       : path + "/";
   })();
-  // Свой scope для OneSignal: не конфликтует с корневым sw.js (офлайн-кэш).
   // Путь задан ЖЁСТКО от корня домена, без относительных путей: на GitHub Pages
-  // приложение живёт в /tamagochi/, и воркер лежит в /tamagochi/push/onesignal/.
-  const ONESIGNAL_SW_DIR = "/tamagochi/push/onesignal/";
+  // приложение живёт в /tamagochi/, воркер — /tamagochi/OneSignalSDKWorker.js,
+  // scope — /tamagochi/ (браузер не разрешает scope выше папки воркера).
+  const ONESIGNAL_SW_DIR = "/tamagochi/";
   // SDK строит адрес воркера так: (path || "/") + "/" + serviceWorkerPath
   // (ведущие слэши у serviceWorkerPath он срезает). Поэтому передаём ПОЛНЫЙ
   // путь от корня домена и НЕ передаём path — иначе получим двойной префикс.
@@ -2727,8 +2771,6 @@ window.addEventListener("DOMContentLoaded", function () {
   const INSTALL_DISMISS_MS = 3 * 24 * 60 * 60 * 1000;
 
   let deferredInstall = null;
-  let swRegistration = null;
-  let updateRequested = false;
 
   function installHintHidden() {
     try {
@@ -2799,43 +2841,11 @@ window.addEventListener("DOMContentLoaded", function () {
     if (event.target === els.iosOverlay) els.iosOverlay.hidden = true;
   });
 
-  /* ---------- Обновления ---------- */
-  function showUpdateBanner() {
-    if (updateRequested) return;
-    els.updateBanner.hidden = false;
-  }
-
-  function watchForUpdate(reg) {
-    const inspect = function (worker) {
-      if (!worker) return;
-      worker.addEventListener("statechange", function () {
-        if (worker.state !== "installed") return;
-        if (!navigator.serviceWorker.controller) {
-          // Первый запуск: активируем сразу, плашка об обновлении не нужна.
-          try { worker.postMessage({ type: "SKIP_WAITING" }); } catch (e) { /* noop */ }
-          return;
-        }
-        showUpdateBanner();
-      });
-    };
-
-    if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner();
-    if (reg.installing) inspect(reg.installing);
-    reg.addEventListener("updatefound", function () { inspect(reg.installing); });
-  }
-
+  /* ---------- Обновления ----------
+     Кэширующего service worker больше нет: игра всегда грузится из сети.
+     Кнопка «Обновить» просто чистит кэши и перезагружает страницу с ?v=… */
   function applyUpdate() {
-    const reg = swRegistration;
     els.updateBtn.disabled = true;
-
-    if (reg && reg.waiting) {
-      updateRequested = true;
-      try { reg.waiting.postMessage({ type: "SKIP_WAITING" }); } catch (e) { /* noop */ }
-      // Страховка, если controllerchange не придёт.
-      setTimeout(function () { if (updateRequested) hardRefresh(); }, 4000);
-      return;
-    }
-
     hardRefresh();
   }
 
@@ -2860,22 +2870,7 @@ window.addEventListener("DOMContentLoaded", function () {
   els.updateBtn.addEventListener("click", applyUpdate);
   els.hardRefresh.addEventListener("click", hardRefresh);
 
-  function registerServiceWorker() {
-    if (!("serviceWorker" in navigator) || location.protocol.indexOf("http") !== 0) return;
-
-    navigator.serviceWorker.addEventListener("controllerchange", function () {
-      if (!updateRequested) return;
-      updateRequested = false;
-      window.location.reload();
-    });
-
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").then(function (reg) {
-        swRegistration = reg;
-        watchForUpdate(reg);
-      }).catch(function () { /* офлайн-кэш не критичен */ });
-    });
-  }
+  // Свой кэширующий sw.js больше не регистрируется (игра работает только онлайн).
 
   /* ============================================================
      14) СТАРТ
@@ -2926,16 +2921,10 @@ window.addEventListener("DOMContentLoaded", function () {
       simulate((now - state.lastTick) / 1000);
       state.lastTick = now;
       renderAll();
-      // iPhone PWA: проверяем свежие файлы при каждом возврате в приложение.
-      if (swRegistration) {
-        try { swRegistration.update().catch(function () { /* noop */ }); } catch (e) { /* noop */ }
-      }
     }
   });
 
   window.addEventListener("beforeunload", function () { pushNow(); });
-
-  registerServiceWorker();
 
   boot();
 });
