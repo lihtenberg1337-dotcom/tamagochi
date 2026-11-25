@@ -450,6 +450,139 @@
     box-shadow: none;
   }
 
+  /* ---------- Пуш-уведомления ---------- */
+  .push-block {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .push-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-weight: 700;
+    font-size: 13.5px;
+    touch-action: manipulation;
+  }
+
+  .push-btn:active {
+    transform: scale(0.985);
+  }
+
+  .push-btn:disabled {
+    opacity: 0.55;
+  }
+
+  .push-btn.poke {
+    background: rgba(111, 174, 116, 0.14);
+    border-color: rgba(111, 174, 116, 0.36);
+    color: #cfe9cf;
+  }
+
+  .push-hint {
+    margin: 0;
+    text-align: center;
+    color: #8aa191;
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+
+  /* ---------- Установка на главный экран ---------- */
+  .install-plank {
+    position: relative;
+    margin-top: 10px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(111, 174, 116, 0.18), rgba(242, 184, 60, 0.14));
+    border: 1px solid rgba(242, 184, 60, 0.34);
+  }
+
+  .install-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 42px;
+    border-radius: 16px;
+    color: var(--honey-soft);
+    font-weight: 800;
+    font-size: 13.5px;
+    text-align: center;
+    touch-action: manipulation;
+  }
+
+  .install-close {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.22);
+    color: #c6d6c9;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  /* ---------- Плашка обновления ---------- */
+  .update-banner {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 12px 6px;
+    padding: 9px 10px 9px 13px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(242, 184, 60, 0.16), rgba(111, 174, 116, 0.14));
+    border: 1px solid rgba(242, 184, 60, 0.38);
+    color: var(--honey-soft);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .update-banner[hidden] {
+    display: none;
+  }
+
+  .update-banner span {
+    flex: 1 1 auto;
+  }
+
+  .update-go {
+    flex: 0 0 auto;
+    padding: 7px 13px;
+    border-radius: 10px;
+    background: var(--honey);
+    color: #2a1c08;
+    font-size: 12.5px;
+    font-weight: 800;
+    touch-action: manipulation;
+  }
+
+  /* ---------- Кнопка ручного обновления ---------- */
+  .sheet-foot {
+    flex: 0 0 auto;
+    padding: 8px 16px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(34, 54, 42, 0.6);
+  }
+
+  .refresh-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    touch-action: manipulation;
+  }
+
   /* ---------- Вкладки ---------- */
   .tabbar {
     position: absolute;
@@ -805,6 +938,11 @@
     <div class="mode-chip" id="modeChip">Соло</div>
   </header>
 
+  <div class="update-banner" id="updateBanner" hidden>
+    <span>✨ Вышло обновление игры!</span>
+    <button class="update-go" id="updateBtn" type="button">Обновить</button>
+  </div>
+
   <main class="main" id="main">
     <section class="hero">
       <div class="status-line">
@@ -867,6 +1005,17 @@
       </div>
 
       <button class="invite" id="inviteBtn">Пригласить друга</button>
+
+      <div class="push-block">
+        <button class="push-btn" id="pushBtn" type="button">🔔 Включить уведомления</button>
+        <button class="push-btn poke" id="pokeBtn" type="button" hidden>🐾 Позвать напарника</button>
+        <p class="push-hint" id="pushHint" hidden></p>
+      </div>
+
+      <div class="install-plank" id="installBlock" hidden>
+        <button class="install-btn" id="installBtn" type="button">📲 Установить игру</button>
+        <button class="install-close" id="installClose" type="button" aria-label="Скрыть на 3 дня">✕</button>
+      </div>
     </section>
   </main>
 
@@ -876,6 +1025,9 @@
       <button class="sheet-close" id="sheetClose" aria-label="Закрыть">✕</button>
     </div>
     <div class="sheet-list" id="sheetList"></div>
+    <div class="sheet-foot">
+      <button class="refresh-btn" id="hardRefresh" type="button">🔄 Обновить игру</button>
+    </div>
   </section>
 
   <nav class="tabbar">
@@ -910,6 +1062,17 @@
     <button class="btn btn-primary" id="shareCopy">📋 Скопировать ссылку</button>
     <button class="btn btn-ghost" id="shareClose">Готово</button>
     <p class="note" id="shareNote"></p>
+  </div>
+</div>
+
+<!-- Подсказка для iOS -->
+<div class="overlay" id="iosOverlay" hidden>
+  <div class="card">
+    <div class="emoji">📲</div>
+    <h1>Добавить на экран Домой</h1>
+    <p>1. Нажми кнопку «Поделиться» (квадрат со стрелкой вверх) внизу Safari.</p>
+    <p>2. Выбери «На экран Домой» — так заработают пуш-уведомления и полноэкранный режим.</p>
+    <button class="btn btn-primary" id="iosClose">Понятно</button>
   </div>
 </div>
 
@@ -955,6 +1118,28 @@ window.addEventListener("DOMContentLoaded", function () {
       appId: "1:601775822516:web:1e9659d69d37e1fe81e9e1"
     }
   };
+
+  /* ------------------------------------------------------------
+     1.1) ПУШ-УВЕДОМЛЕНИЯ (OneSignal Web SDK v16)
+     ------------------------------------------------------------
+     OneSignal Dashboard → Settings → Keys & IDs:
+       • ONESIGNAL_APP_ID   — OneSignal App ID
+       • ONESIGNAL_REST_KEY — REST API Key
+
+     ВАЖНО: страница на GitHub Pages открыта всем, поэтому REST-ключ
+     виден любому в исходниках. Для игры с друзьями это допустимо,
+     но если проект станет публичным — отправку лучше перенести
+     на свой прокси (например, Cloudflare Worker).
+
+     Service worker OneSignal лежит в подпапке push/onesignal/:
+     браузер держит один воркер на scope, а sw.js уже занимает
+     корень проекта (офлайн-кэш PWA). Пути ниже считаются от папки
+     проекта, поэтому на GitHub Pages (user.github.io/repo/) файл
+     регистрируется из /repo/, а не из корня домена github.io.
+     ------------------------------------------------------------ */
+  const ONESIGNAL_APP_ID = "b9c0ccd4-5fae-4d18-8ba6-ac385e7ecc6c";
+  const ONESIGNAL_REST_KEY = "os_v2_app_xhamzvc7vzgrrc5gvq4f47wmns2c3bviq6pekse6nlg6l3z65bijymlzntaq5apmueijiyl4ejqy2l5y4prkhmfzlamclskqish4meq";
+  const POKE_COOLDOWN_MS = 30 * 60 * 1000;
 
   const FIREBASE_READY =
     DB_CONFIG.provider === "firebase" &&
@@ -1047,6 +1232,17 @@ window.addEventListener("DOMContentLoaded", function () {
     contribLegend: $("contribLegend"),
     log: $("log"),
     inviteBtn: $("inviteBtn"),
+    pushBtn: $("pushBtn"),
+    pokeBtn: $("pokeBtn"),
+    pushHint: $("pushHint"),
+    installBlock: $("installBlock"),
+    installBtn: $("installBtn"),
+    installClose: $("installClose"),
+    iosOverlay: $("iosOverlay"),
+    iosClose: $("iosClose"),
+    updateBanner: $("updateBanner"),
+    updateBtn: $("updateBtn"),
+    hardRefresh: $("hardRefresh"),
     sheet: $("sheet"),
     sheetTitle: $("sheetTitle"),
     sheetList: $("sheetList"),
@@ -1144,7 +1340,7 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   function newPlayer() {
-    return { name: "Игрок 1", taps: 0, honey: 0, joinedAt: Date.now() };
+    return { name: "Игрок 1", taps: 0, honey: 0, joinedAt: Date.now(), pushId: "" };
   }
 
   function normalize(raw) {
@@ -1174,7 +1370,9 @@ window.addEventListener("DOMContentLoaded", function () {
           name: typeof p.name === "string" ? p.name.slice(0, 16) : "Игрок",
           taps: Math.max(0, Math.floor(num(p.taps))),
           honey: Math.max(0, num(p.honey)),
-          joinedAt: num(p.joinedAt) || Date.now()
+          joinedAt: num(p.joinedAt) || Date.now(),
+          // id пуш-подписки игрока — по нему напарник отправляет уведомление
+          pushId: typeof p.pushId === "string" ? p.pushId.slice(0, 64) : ""
         };
       });
     }
@@ -1201,6 +1399,7 @@ window.addEventListener("DOMContentLoaded", function () {
   let loadedFromStorage = false;
   let lastSheetRender = 0;
   let lastDuoRender = 0;
+  let lastPushUiRender = 0;
   let tapBucket = { honey: 0, taps: 0, since: Date.now() };
   const sync = { room: null, backend: null, db: null, ref: null, connectedRef: null, channel: null, timer: null, applying: false, online: false, cloudError: false };
 
@@ -1268,6 +1467,7 @@ window.addEventListener("DOMContentLoaded", function () {
     if (after > before) {
       addLog("поднял(а) уровень до " + after);
       toast("Новый уровень " + after + " — " + stageFor(after));
+      notifyLevelUp(after);
     }
   }
 
@@ -1471,6 +1671,11 @@ window.addEventListener("DOMContentLoaded", function () {
     state = remote;
     if (me && !state.players[myId]) state.players[myId] = me;
     if (!state.players[myId]) state.players[myId] = newPlayer();
+    // Если удалённая копия потеряла мой id подписки — возвращаем и дописываем.
+    if (me && me.pushId && !state.players[myId].pushId) {
+      state.players[myId].pushId = me.pushId;
+      push();
+    }
     state.lastTick = Date.now();
     state.mode = "duo";
     if (sync.room) state.room = sync.room;
@@ -1517,7 +1722,10 @@ window.addEventListener("DOMContentLoaded", function () {
     for (let i = 1; i <= 8; i++) {
       if (!used.includes("Игрок " + i)) { name = "Игрок " + i; break; }
     }
-    state.players[myId] = { name: name, taps: 0, honey: 0, joinedAt: Date.now() };
+    state.players[myId] = {
+      name: name, taps: 0, honey: 0, joinedAt: Date.now(),
+      pushId: os.subscriptionId ? String(os.subscriptionId) : ""
+    };
   }
 
   function roomLink(code) {
@@ -1525,6 +1733,297 @@ window.addEventListener("DOMContentLoaded", function () {
       ? location.origin + location.pathname
       : location.href.split("?")[0].split("#")[0];
     return base + "?room=" + code;
+  }
+
+  /* ============================================================
+     7.1) ПУШ-УВЕДОМЛЕНИЯ (OneSignal Web SDK v16)
+     ============================================================ */
+  const os = {
+    sdk: null,
+    ready: false,
+    loading: null,
+    error: null,
+    permission: false,
+    subscriptionId: null
+  };
+
+  // Папка проекта: "/repo/" на GitHub Pages, "/" локально.
+  const SW_DIR = (function () {
+    const path = location.pathname || "/";
+    const cut = path.lastIndexOf("/");
+    return cut >= 0 ? path.slice(0, cut + 1) || "/" : "/";
+  })();
+  // Свой scope для OneSignal: не конфликтует с корневым sw.js (офлайн-кэш).
+  const ONESIGNAL_SW_DIR = SW_DIR + "push/onesignal/";
+
+  function pushConfigured() {
+    return !!ONESIGNAL_APP_ID && !!ONESIGNAL_REST_KEY;
+  }
+
+  function isIosDevice() {
+    const ua = navigator.userAgent || "";
+    if (/iPad|iPhone|iPod/.test(ua)) return true;
+    return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  }
+
+  function isStandaloneMode() {
+    if (navigator.standalone === true) return true;
+    return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  }
+
+  function iosNeedsInstall() {
+    return isIosDevice() && !isStandaloneMode();
+  }
+
+  function loadOneSignal() {
+    if (!pushConfigured()) return Promise.resolve(null);
+    if (os.loading) return os.loading;
+
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    os.loading = new Promise(function (resolve) {
+      const script = document.createElement("script");
+      script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+      script.defer = true;
+      script.onerror = function () {
+        os.error = "sdk";
+        resolve(null);
+      };
+      document.head.appendChild(script);
+
+      window.OneSignalDeferred.push(async function (OneSignal) {
+        try {
+          await OneSignal.init({
+            appId: ONESIGNAL_APP_ID,
+            allowLocalhostAsSecureOrigin: true,
+            // SDK склеивает scope с origin и ищет воркер от корня домена,
+            // поэтому явно передаём папку проекта — иначе на GitHub Pages
+            // запрос уйдёт в https://user.github.io/OneSignalSDKWorker.js
+            path: ONESIGNAL_SW_DIR,
+            serviceWorkerParam: { scope: ONESIGNAL_SW_DIR },
+            serviceWorkerPath: "OneSignalSDKWorker.js",
+            notifyButton: { enable: false },
+            welcomeNotification: { disable: true },
+            promptOptions: { slidedown: { enabled: false } }
+          });
+          os.sdk = OneSignal;
+          os.ready = true;
+          // Уникальный id игрока в комнате: у напарника он тоже сохранён.
+          try { OneSignal.login(myId); } catch (e) { /* noop */ }
+          bindOneSignal(OneSignal);
+          resolve(OneSignal);
+        } catch (e) {
+          os.error = String((e && e.message) || e);
+          console.warn("OneSignal init error:", e);
+          resolve(null);
+        }
+      });
+    });
+
+    return os.loading;
+  }
+
+  function bindOneSignal(OneSignal) {
+    const sub = OneSignal.User && OneSignal.User.PushSubscription;
+    if (!sub) return;
+
+    const syncSubscription = function () {
+      const id = typeof sub.id === "string" && sub.id ? sub.id : null;
+      os.subscriptionId = id;
+      rememberPushId(id);
+      renderPushUi();
+    };
+
+    os.permission = !!(OneSignal.Notifications && OneSignal.Notifications.permission);
+    if (os.permission) {
+      try { sub.optIn(); } catch (e) { /* noop */ }
+    }
+    syncSubscription();
+
+    try { sub.addEventListener("change", syncSubscription); } catch (e) { /* noop */ }
+    try {
+      OneSignal.Notifications.addEventListener("permissionChange", function (granted) {
+        os.permission = !!granted;
+        if (granted) {
+          try { sub.optIn(); } catch (e) { /* noop */ }
+        }
+        syncSubscription();
+      });
+    } catch (e) { /* noop */ }
+  }
+
+  // Кладём id подписки в свою запись игрока в Firebase: второй игрок
+  // видит его в state.players[pid].pushId и может отправить пуш.
+  function rememberPushId(id) {
+    ensureMe();
+    const me = state.players[myId];
+    if (!me) return;
+    const value = id ? String(id) : "";
+    if ((me.pushId || "") === value) return;
+    me.pushId = value;
+    saveLocal();
+    if (state.mode === "duo" && sync.room) push();
+  }
+
+  function enablePush() {
+    if (!pushConfigured()) {
+      toast("Пуш не настроен: впиши ONESIGNAL_APP_ID и ONESIGNAL_REST_KEY");
+      return;
+    }
+    if (!window.isSecureContext) {
+      toast("Уведомления работают только по HTTPS");
+      return;
+    }
+    if (iosNeedsInstall()) {
+      toast("Сначала добавь сайт на экран Домой в Safari");
+      return;
+    }
+
+    loadOneSignal().then(function (OneSignal) {
+      if (!OneSignal) {
+        toast(os.error && os.error.indexOf("Can only be used on") === 0
+          ? "OneSignal разрешён только для домена из настроек приложения"
+          : "OneSignal не загрузился — проверь интернет и App ID");
+        return;
+      }
+      OneSignal.Notifications.requestPermission().then(function (granted) {
+        os.permission = !!granted;
+        if (granted) {
+          try { OneSignal.User.PushSubscription.optIn(); } catch (e) { /* noop */ }
+          try { OneSignal.login(myId); } catch (e) { /* noop */ }
+        }
+        renderPushUi();
+        toast(granted ? "Уведомления включены 🔔" : "Без разрешения пуш не придёт");
+      }).catch(function () {
+        toast("Не удалось запросить разрешение");
+      });
+    });
+  }
+
+  function partnerPushIds() {
+    const ids = [];
+    Object.keys(state.players).forEach(function (pid) {
+      if (pid === myId) return;
+      const player = state.players[pid];
+      if (player && typeof player.pushId === "string" && player.pushId) ids.push(player.pushId);
+    });
+    return ids.slice(0, 20);
+  }
+
+  function sendPush(subscriptionIds, text) {
+    if (!pushConfigured() || !subscriptionIds.length) return Promise.resolve(false);
+
+    return fetch("https://api.onesignal.com/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Новые App API keys (os_v2_app_…) требуют схему "Key",
+        // старые REST-ключи работают по схеме "Basic".
+        Authorization: (ONESIGNAL_REST_KEY.indexOf("os_v2_") === 0 ? "Key " : "Basic ") + ONESIGNAL_REST_KEY
+      },
+      body: JSON.stringify({
+        app_id: ONESIGNAL_APP_ID,
+        target_channel: "push",
+        include_subscription_ids: subscriptionIds,
+        headings: { en: "Медведь-Тамагочи", ru: "Медведь-Тамагочи" },
+        contents: { en: text, ru: text },
+        url: roomLink(state.room || "")
+      })
+    }).then(function (res) {
+      if (res.ok) return true;
+      return res.text().then(function (body) {
+        console.warn("OneSignal: отправка не удалась", res.status, body);
+        return false;
+      }).catch(function () { return false; });
+    }).catch(function (e) {
+      console.warn("OneSignal: сеть недоступна", e);
+      return false;
+    });
+  }
+
+  function pokeCooldownKey() {
+    return "bear:poke:" + myId + ":" + (state.room || "");
+  }
+
+  function pokeCooldownLeft() {
+    try {
+      const until = Number(localStorage.getItem(pokeCooldownKey())) || 0;
+      return Math.max(0, until - Date.now());
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function pokePartner() {
+    if (state.mode !== "duo" || !state.room) {
+      toast("Позвать напарника можно только в дуо-режиме");
+      return;
+    }
+    if (pokeCooldownLeft() > 0) {
+      toast("Напарника можно звать раз в 30 минут");
+      return;
+    }
+    if (!pushConfigured()) {
+      toast("Пуш не настроен: впиши ONESIGNAL_APP_ID и ONESIGNAL_REST_KEY");
+      return;
+    }
+
+    const ids = partnerPushIds();
+    if (!ids.length) {
+      toast("У напарника нет пуш-подписки — пусть включит уведомления");
+      return;
+    }
+
+    els.pokeBtn.disabled = true;
+    sendPush(ids, "Медведь соскучился! Напарник зовёт тебя потапать 🐻").then(function (ok) {
+      if (!ok) {
+        els.pokeBtn.disabled = false;
+        toast("Не удалось отправить пуш — проверь ONESIGNAL_REST_KEY");
+        return;
+      }
+      try { localStorage.setItem(pokeCooldownKey(), String(Date.now() + POKE_COOLDOWN_MS)); } catch (e) { /* noop */ }
+      toast("Позвали напарника 🐾");
+      renderPushUi();
+    });
+  }
+
+  function notifyLevelUp(level) {
+    if (state.mode !== "duo" || !sync.room || !pushConfigured()) return;
+    const ids = partnerPushIds();
+    if (!ids.length) return;
+    sendPush(ids, "Ура! Наш медведь достиг " + level + " уровня! 🎉");
+  }
+
+  function renderPushUi() {
+    const granted = !!os.permission;
+    const configured = pushConfigured();
+    const left = pokeCooldownLeft();
+    const nativePermission = "Notification" in window ? Notification.permission : "default";
+
+    els.pushBtn.hidden = granted;
+    els.pushBtn.disabled = nativePermission === "denied";
+
+    let hint = "";
+    if (!window.isSecureContext) {
+      hint = "Уведомления работают только по HTTPS (GitHub Pages подходит).";
+    } else if (!("Notification" in window) && !isIosDevice()) {
+      hint = "Этот браузер не поддерживает пуш-уведомления.";
+    } else if (granted) {
+      hint = os.subscriptionId ? "🔔 Уведомления включены" : "Разрешение есть — подключаем подписку…";
+    } else if (nativePermission === "denied") {
+      hint = "Уведомления заблокированы в настройках браузера — разреши их для этого сайта";
+    } else if (iosNeedsInstall()) {
+      hint = "Сначала добавь сайт на экран Домой в Safari";
+    } else if (!configured) {
+      hint = "Чтобы пуш заработал, впиши ONESIGNAL_APP_ID и ONESIGNAL_REST_KEY в начале скрипта.";
+    }
+    els.pushHint.hidden = !hint;
+    els.pushHint.textContent = hint;
+
+    els.pokeBtn.hidden = state.mode !== "duo";
+    els.pokeBtn.disabled = left > 0;
+    els.pokeBtn.textContent = left > 0
+      ? "🐾 Позвать напарника · " + Math.ceil(left / 60000) + " мин"
+      : "🐾 Позвать напарника";
   }
 
   /* ============================================================
@@ -1659,6 +2158,7 @@ window.addEventListener("DOMContentLoaded", function () {
       state = remoteState;
       if (me && !state.players[myId]) state.players[myId] = me;
       ensureMe();
+      if (me && me.pushId && !state.players[myId].pushId) state.players[myId].pushId = me.pushId;
       state.mode = "duo";
       state.room = clean;
       state.lastTick = Date.now();
@@ -1871,6 +2371,7 @@ window.addEventListener("DOMContentLoaded", function () {
     renderInvite();
     renderDuo();
     renderSheet();
+    renderPushUi();
   }
 
   /* ============================================================
@@ -1890,6 +2391,9 @@ window.addEventListener("DOMContentLoaded", function () {
     els.tabCare.classList.remove("active");
     els.tabUpgrade.classList.remove("active");
   }
+
+  els.pushBtn.addEventListener("click", enablePush);
+  els.pokeBtn.addEventListener("click", pokePartner);
 
   els.tabCare.addEventListener("click", function () {
     if (activeTab === "care") closeSheet(); else openTab("care");
@@ -2009,6 +2513,10 @@ window.addEventListener("DOMContentLoaded", function () {
     renderCore();
 
     if (activeTab && now - lastSheetRender > 900) renderSheet();
+    if (now - lastPushUiRender > 5000) {
+      lastPushUiRender = now;
+      renderPushUi();
+    }
     if (state.mode === "duo" && sync.room && now - lastDuoRender > 1500) {
       lastDuoRender = now;
       renderDuo();
@@ -2016,7 +2524,164 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   /* ============================================================
-     13) СТАРТ
+     13) УСТАНОВКА НА ГЛАВНЫЙ ЭКРАН И ОБНОВЛЕНИЯ
+     ============================================================ */
+  const INSTALL_DISMISS_KEY = "bear:install-hint-hidden";
+  const INSTALL_DISMISS_MS = 3 * 24 * 60 * 60 * 1000;
+
+  let deferredInstall = null;
+  let swRegistration = null;
+  let updateRequested = false;
+
+  function installHintHidden() {
+    try {
+      const at = Number(localStorage.getItem(INSTALL_DISMISS_KEY)) || 0;
+      return Date.now() - at < INSTALL_DISMISS_MS;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hideInstallHint() {
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* noop */ }
+    renderInstall();
+  }
+
+  function renderInstall() {
+    if (!els.installBlock) return;
+    els.installBlock.hidden = isStandaloneMode() || installHintHidden();
+    if (els.installBlock.hidden) return;
+    els.installBtn.textContent = isIosDevice() && !deferredInstall
+      ? "📲 Добавить на экран Домой"
+      : "📲 Установить игру";
+  }
+
+  function onInstallClick() {
+    if (deferredInstall) {
+      const event = deferredInstall;
+      deferredInstall = null;
+      els.installBtn.disabled = true;
+      event.prompt();
+      const done = function () {
+        els.installBtn.disabled = false;
+        renderInstall();
+      };
+      if (event.userChoice && typeof event.userChoice.then === "function") {
+        event.userChoice.then(done).catch(done);
+      } else {
+        done();
+      }
+      return;
+    }
+
+    if (isIosDevice()) {
+      els.iosOverlay.hidden = false;
+      return;
+    }
+
+    toast("Открой меню браузера и выбери «Установить приложение»");
+  }
+
+  window.addEventListener("beforeinstallprompt", function (event) {
+    event.preventDefault();
+    deferredInstall = event;
+    renderInstall();
+  });
+
+  window.addEventListener("appinstalled", function () {
+    deferredInstall = null;
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* noop */ }
+    renderInstall();
+    toast("Игра установлена 📲");
+  });
+
+  els.installBtn.addEventListener("click", onInstallClick);
+  els.installClose.addEventListener("click", hideInstallHint);
+  els.iosClose.addEventListener("click", function () { els.iosOverlay.hidden = true; });
+  els.iosOverlay.addEventListener("click", function (event) {
+    if (event.target === els.iosOverlay) els.iosOverlay.hidden = true;
+  });
+
+  /* ---------- Обновления ---------- */
+  function showUpdateBanner() {
+    if (updateRequested) return;
+    els.updateBanner.hidden = false;
+  }
+
+  function watchForUpdate(reg) {
+    const inspect = function (worker) {
+      if (!worker) return;
+      worker.addEventListener("statechange", function () {
+        if (worker.state !== "installed") return;
+        if (!navigator.serviceWorker.controller) {
+          // Первый запуск: активируем сразу, плашка об обновлении не нужна.
+          try { worker.postMessage({ type: "SKIP_WAITING" }); } catch (e) { /* noop */ }
+          return;
+        }
+        showUpdateBanner();
+      });
+    };
+
+    if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner();
+    if (reg.installing) inspect(reg.installing);
+    reg.addEventListener("updatefound", function () { inspect(reg.installing); });
+  }
+
+  function applyUpdate() {
+    const reg = swRegistration;
+    els.updateBtn.disabled = true;
+
+    if (reg && reg.waiting) {
+      updateRequested = true;
+      try { reg.waiting.postMessage({ type: "SKIP_WAITING" }); } catch (e) { /* noop */ }
+      // Страховка, если controllerchange не придёт.
+      setTimeout(function () { if (updateRequested) hardRefresh(); }, 4000);
+      return;
+    }
+
+    hardRefresh();
+  }
+
+  function hardRefresh() {
+    const url = new URL(location.href);
+    url.searchParams.set("v", String(Date.now()));
+    const go = function () { location.replace(url.toString()); };
+
+    if (!("caches" in window)) {
+      go();
+      return;
+    }
+
+    caches.keys()
+      .then(function (keys) {
+        return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+      })
+      .catch(function () { /* noop */ })
+      .then(go);
+  }
+
+  els.updateBtn.addEventListener("click", applyUpdate);
+  els.hardRefresh.addEventListener("click", hardRefresh);
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator) || location.protocol.indexOf("http") !== 0) return;
+
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (!updateRequested) return;
+      updateRequested = false;
+      window.location.reload();
+    });
+
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").then(function (reg) {
+        swRegistration = reg;
+        watchForUpdate(reg);
+      }).catch(function () { /* офлайн-кэш не критичен */ });
+    });
+  }
+
+  /* ============================================================
+     14) СТАРТ
      ============================================================ */
   function boot() {
     loadLocal();
@@ -2044,6 +2709,8 @@ window.addEventListener("DOMContentLoaded", function () {
     state.lastTick = now;
 
     renderAll();
+    renderInstall();
+    loadOneSignal();
     setInterval(tick, 250);
 
     setTimeout(function () {
@@ -2062,16 +2729,16 @@ window.addEventListener("DOMContentLoaded", function () {
       simulate((now - state.lastTick) / 1000);
       state.lastTick = now;
       renderAll();
+      // iPhone PWA: проверяем свежие файлы при каждом возврате в приложение.
+      if (swRegistration) {
+        try { swRegistration.update().catch(function () { /* noop */ }); } catch (e) { /* noop */ }
+      }
     }
   });
 
   window.addEventListener("beforeunload", function () { pushNow(); });
 
-  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function () { /* офлайн-кэш не критичен */ });
-    });
-  }
+  registerServiceWorker();
 
   boot();
 });
