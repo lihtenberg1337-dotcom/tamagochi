@@ -7,16 +7,17 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v12 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v13 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v12";
+    var APP_VERSION = "v13";
     var VERSION_KEY = "bear:app-version";
-    // Ключи bear:player-name (ник) и bear:pid не трогаем — сброс версии
-    // чистит только кэши и service worker'ы, ник должен остаться.
+    // Ключи bear:player-name (ник), bear:last-chest (таймер сундука),
+    // bear:room:* (код комнаты) и bear:pid не трогаем — сброс версии
+    // чистит только кэши и service worker'ы, прогресс игроков остаётся.
     var ONESIGNAL_DIR = "/tamagochi/";
     var ONESIGNAL_FILE = "/tamagochi/OneSignalSDKWorker.js";
 
@@ -194,7 +195,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
     padding: calc(env(safe-area-inset-top) + 10px) 16px 8px;
     flex: 0 0 auto;
   }
@@ -220,13 +221,14 @@
 
   .mode-chip {
     padding: 7px 13px;
+    min-width: 0;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--line);
     color: var(--muted);
     font-size: 12px;
     font-weight: 600;
-    max-width: 34%;
+    max-width: 30%;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -237,7 +239,7 @@
     align-items: center;
     gap: 5px;
     min-width: 0;
-    max-width: 34%;
+    max-width: 28%;
     padding: 6px 10px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
@@ -355,10 +357,11 @@
     filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.45));
     transition: transform 0.1s ease;
     will-change: transform;
+    transform: scale(var(--bear-scale, 1));
   }
 
   .bear-btn.is-tap .bear {
-    transform: scale(0.93) translateY(6px);
+    transform: scale(calc(var(--bear-scale, 1) * 0.93)) translateY(6px);
   }
 
   .bear.sleeping {
@@ -1099,6 +1102,268 @@
     transform: translate(-50%, 0);
   }
 
+  /* ---------- Кооп-бонус и безумие ---------- */
+  .bonus-stack {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    pointer-events: none;
+  }
+
+  .duo-badge {
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f2b83c, #e2601f);
+    color: #2a1608;
+    font-size: 12.5px;
+    font-weight: 900;
+    white-space: nowrap;
+    animation: duoPulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes duoPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(242, 184, 60, 0.5); }
+    50% { transform: scale(1.05); box-shadow: 0 0 22px 4px rgba(242, 184, 60, 0.35); }
+  }
+
+  .frenzy-badge {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(226, 96, 31, 0.18);
+    border: 1px solid rgba(242, 184, 60, 0.55);
+    color: #ffd27a;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    animation: frenzyGlow 1s ease-in-out infinite;
+  }
+
+  @keyframes frenzyGlow {
+    0%, 100% { opacity: 0.82; }
+    50% { opacity: 1; }
+  }
+
+  .float.gold {
+    color: #ffd75e;
+    font-size: 23px;
+    text-shadow: 0 0 12px rgba(255, 190, 60, 0.9), 0 2px 8px rgba(0, 0, 0, 0.7);
+  }
+
+  /* ---------- Сундук ---------- */
+  .chest-btn {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--line);
+  }
+
+  .chest-btn[data-ready="1"] {
+    background: rgba(242, 184, 60, 0.16);
+    border-color: rgba(242, 184, 60, 0.5);
+    animation: chestBounce 1.8s ease-in-out infinite;
+  }
+
+  .chest-btn[data-ready="0"] {
+    opacity: 0.5;
+  }
+
+  @keyframes chestBounce {
+    0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(242, 184, 60, 0); }
+    40% { transform: translateY(-4px) scale(1.07); box-shadow: 0 0 16px rgba(242, 184, 60, 0.45); }
+    60% { transform: translateY(-2px) scale(1.03); }
+  }
+
+  /* ---------- Эволюции медведя ---------- */
+  .evo-line {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.2px;
+  }
+
+  .evo-line b {
+    color: var(--honey-soft);
+    font-weight: 700;
+  }
+
+  .bear-wrap.evo-1 { --bear-scale: 0.9; }
+  .bear-wrap.evo-2 { --bear-scale: 1; }
+  .bear-wrap.evo-3 { --bear-scale: 1.06; }
+  .bear-wrap.evo-4 { --bear-scale: 1.1; }
+
+  .bear-deco {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  .deco {
+    position: absolute;
+    display: none;
+  }
+
+  .deco-bow {
+    top: 10%;
+    left: 31%;
+    font-size: 26px;
+    transform: rotate(-14deg);
+  }
+
+  .deco-scarf {
+    top: 49%;
+    left: 50%;
+    width: 44%;
+    height: 13%;
+    transform: translateX(-50%);
+    border-radius: 12px 12px 22px 22px;
+    background: linear-gradient(135deg, #3f7b4b, #6fae74 55%, #9ad08f);
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22), 0 0 12px rgba(242, 184, 60, 0.35);
+  }
+
+  .deco-crown {
+    top: 3%;
+    left: 50%;
+    font-size: 30px;
+    transform: translateX(-50%) rotate(-4deg);
+    filter: drop-shadow(0 0 8px rgba(242, 184, 60, 0.85));
+  }
+
+  .deco-glasses {
+    top: 29%;
+    left: 50%;
+    font-size: 28px;
+    transform: translateX(-50%);
+  }
+
+  .deco-neon {
+    inset: 9% 11% 13%;
+    border-radius: 50%;
+    border: 2px solid rgba(94, 234, 255, 0.65);
+    box-shadow: 0 0 18px rgba(94, 234, 255, 0.55), inset 0 0 18px rgba(94, 234, 255, 0.3);
+  }
+
+  .spark {
+    position: absolute;
+    display: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #7ef0ff;
+    box-shadow: 0 0 10px #7ef0ff;
+    opacity: 0;
+  }
+
+  .spark.s1 { left: 8%; top: 30%; }
+  .spark.s2 { right: 6%; top: 46%; animation-delay: 0.7s; }
+  .spark.s3 { left: 26%; bottom: 10%; animation-delay: 1.3s; }
+  .spark.s4 { right: 24%; top: 14%; animation-delay: 1.9s; }
+
+  .bear-wrap.evo-1 .deco-bow { display: block; }
+  .bear-wrap.evo-2 .deco-scarf { display: block; }
+  .bear-wrap.evo-3 .deco-crown,
+  .bear-wrap.evo-3 .deco-glasses { display: block; }
+  .bear-wrap.evo-4 .deco-crown,
+  .bear-wrap.evo-4 .deco-neon { display: block; }
+  .bear-wrap.evo-4 .spark {
+    display: block;
+    animation: sparkFloat 2.6s ease-in-out infinite;
+  }
+
+  .bear-wrap.evo-2 .bear-glow {
+    background: radial-gradient(circle, rgba(242, 184, 60, 0.16) 0%, rgba(111, 174, 116, 0.1) 45%, transparent 70%);
+  }
+
+  .bear-wrap.evo-3 .bear-glow {
+    background: radial-gradient(circle, rgba(255, 196, 84, 0.34) 0%, rgba(242, 184, 60, 0.1) 55%, transparent 72%);
+    animation: auraPulse 3.2s ease-in-out infinite;
+  }
+
+  .bear-wrap.evo-4 .bear-glow {
+    background: radial-gradient(circle, rgba(94, 234, 255, 0.32) 0%, rgba(126, 240, 255, 0.1) 50%, transparent 72%);
+    animation: auraPulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes auraPulse {
+    0%, 100% { opacity: 0.75; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.06); }
+  }
+
+  @keyframes sparkFloat {
+    0%, 100% { opacity: 0; transform: translateY(8px) scale(0.6); }
+    50% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+  }
+
+  /* ---------- Золотая пчела ---------- */
+  .bee-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 21;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .gold-bee {
+    position: absolute;
+    left: 0;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    pointer-events: auto;
+    touch-action: manipulation;
+    filter: drop-shadow(0 0 10px rgba(255, 205, 70, 0.85));
+    animation: beeFly 4.5s linear forwards;
+  }
+
+  .gold-bee .bee-body {
+    display: block;
+    animation: beeSway 0.9s ease-in-out infinite;
+  }
+
+  @keyframes beeFly {
+    0% { transform: translateX(-60px) translateY(0) scale(0.9); opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { transform: translateX(calc(100vw + 60px)) translateY(-30px) scale(1); opacity: 0; }
+  }
+
+  @keyframes beeSway {
+    0%, 100% { transform: translateY(-8px) rotate(-8deg); }
+    50% { transform: translateY(8px) rotate(8deg); }
+  }
+
+  .bee-flash {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff6c0, #f2b83c 55%, transparent 70%);
+    animation: beeFlash 0.5s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes beeFlash {
+    0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(6); opacity: 0; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     * {
       animation-duration: 0.001s !important;
@@ -1111,6 +1376,7 @@
 <div class="app">
   <header class="topbar">
     <div class="honey-pill"><span class="icon">🍯</span><span id="honey">0</span></div>
+    <button class="chest-btn" id="chestBtn" type="button" data-ready="0" title="Лесной сундук" aria-label="Открыть лесной сундук">🎁</button>
     <button class="name-chip" id="nameBtn" type="button" title="Сменить ник">
       <span class="name-text" id="nameLabel">Игрок 1</span><span class="pen">✏️</span>
     </button>
@@ -1125,12 +1391,17 @@
   <main class="main" id="main">
     <section class="hero">
       <div class="status-line">
-        <span class="stage" id="stage">Медвежонок</span>
+        <span class="stage" id="stage">Сладкоежка</span>
         <span class="lvl" id="levelNum">ур. 1</span>
       </div>
+      <div class="evo-line">Эволюция: <b id="evoTitle">Медвежонок-сладкоежка</b></div>
 
       <div class="bear-wrap" id="bearWrap">
         <div class="bear-glow"></div>
+        <div class="bonus-stack">
+          <div class="duo-badge" id="duoBadge" hidden>🔥 Вы оба онлайн! Мёд ×2</div>
+          <div class="frenzy-badge" id="frenzyBadge" hidden>🔥 Безумие ×2 · <span id="frenzyLeft">30</span>с</div>
+        </div>
         <button class="bear-btn" id="bearBtn" aria-label="Погладить медведя и собрать мёд">
           <svg class="bear" id="bear" viewBox="0 0 240 272" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
             <ellipse cx="120" cy="252" rx="62" ry="10" fill="#000" opacity=".28" />
@@ -1155,6 +1426,14 @@
             <ellipse cx="157" cy="119" rx="10" ry="6" fill="#e0866d" opacity=".35" />
           </svg>
         </button>
+        <div class="bear-deco" aria-hidden="true">
+          <span class="deco deco-bow">🎀</span>
+          <span class="deco deco-scarf"></span>
+          <span class="deco deco-crown">👑</span>
+          <span class="deco deco-glasses">🕶</span>
+          <span class="deco deco-neon"></span>
+          <i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i><i class="spark s4"></i>
+        </div>
         <div class="fx" id="fx"></div>
         <div class="sleep-badge" id="sleepBadge" hidden>💤 спит</div>
       </div>
@@ -1197,7 +1476,7 @@
       </div>
     </section>
 
-    <div class="version-badge" id="versionBadge">Версия: v12 • Кэш: чист</div>
+    <div class="version-badge" id="versionBadge">Версия: v13 • Кэш: чист</div>
   </main>
 
   <section class="sheet" id="sheet" aria-label="Меню">
@@ -1215,6 +1494,8 @@
     <button class="tab" data-tab="care" id="tabCare">🍲 <span>Уход</span></button>
     <button class="tab" data-tab="upgrade" id="tabUpgrade">🛠 <span>Прокачка</span></button>
   </nav>
+
+  <div class="bee-layer" id="beeLayer" aria-hidden="true"></div>
 </div>
 
 <!-- Выбор режима -->
@@ -1255,6 +1536,27 @@
     <input class="name-input" id="nameInput" type="text" maxlength="15" placeholder="Например, Дима" autocomplete="nickname" autocapitalize="words" spellcheck="false" />
     <p class="error-text" id="nameError"></p>
     <button class="btn btn-primary" id="nameSave" type="button">Сохранить</button>
+  </div>
+</div>
+
+<!-- Лесной сундук -->
+<div class="overlay" id="chestOverlay" hidden>
+  <div class="card">
+    <div class="emoji" id="chestIcon">🎁</div>
+    <h1 id="chestTitle">Лесной сундук</h1>
+    <p id="chestDesc"></p>
+    <button class="btn btn-primary" id="chestClose" type="button">Забрать</button>
+  </div>
+</div>
+
+<!-- Новая стадия эволюции -->
+<div class="overlay" id="evoOverlay" hidden style="z-index: 76;">
+  <div class="card">
+    <div class="emoji" id="evoIcon">👑</div>
+    <h1 id="evoName">Новая эволюция</h1>
+    <p>Медведь вырос до новой стадии!</p>
+    <p id="evoDesc"></p>
+    <button class="btn btn-primary" id="evoClose" type="button">Круто!</button>
   </div>
 </div>
 
@@ -1387,18 +1689,42 @@ window.addEventListener("DOMContentLoaded", function () {
     }
   ];
 
-  const STAGES = [
-    { lv: 1, name: "Медвежонок" },
-    { lv: 5, name: "Подросток" },
-    { lv: 10, name: "Крепыш" },
-    { lv: 18, name: "Хозяин леса" },
-    { lv: 28, name: "Легенда тайги" }
+  /* Эволюция внешности: порог уровня, класс стилей, титул и описание.
+     Стадии: 1–3 сладкоежка, 4–7 следопыт, 8–12 хозяин тайги, 13+ кибер-медведь. */
+  const EVOLUTIONS = [
+    {
+      lv: 1, cls: "evo-1", icon: "🎀", short: "Сладкоежка",
+      name: "Медвежонок-сладкоежка",
+      desc: "Маленький милый медвежонок с бантиком только начинает путь к мёду."
+    },
+    {
+      lv: 4, cls: "evo-2", icon: "🧣", short: "Следопыт",
+      name: "Лесной следопыт",
+      desc: "Подросший медведь в зелёной бандане с золотым отливом знает все тропы."
+    },
+    {
+      lv: 8, cls: "evo-3", icon: "👑", short: "Хозяин тайги",
+      name: "Хозяин тайги",
+      desc: "Солидный крупный медведь в короне и очках. Вокруг него — тёплое свечение."
+    },
+    {
+      lv: 13, cls: "evo-4", icon: "⚡", short: "Кибер-Медведь",
+      name: "Кибер-Медведь",
+      desc: "Легендарная форма: неоновая корона, свечение и искры частиц вокруг."
+    }
   ];
 
   const SAVE_KEY = "bear:save";
   const PID_KEY = "bear:pid";
   // Ник живёт отдельно от сейва и не стирается авто-сбросом версии.
   const NAME_KEY = "bear:player-name";
+  // Время последнего открытия сундука. Авто-сброс версии этот ключ не трогает.
+  const CHEST_KEY = "bear:last-chest";
+  const CHEST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  // Напарник считается онлайн, если его lastSeen моложе 12 секунд.
+  const PARTNER_ONLINE_MS = 12 * 1000;
+  const FRENZY_MS = 30 * 1000;
+  const BEE_FLIGHT_MS = 4500;
 
   /* ============================================================
      3) DOM
@@ -1464,6 +1790,22 @@ window.addEventListener("DOMContentLoaded", function () {
     nameError: $("nameError"),
     nameSave: $("nameSave"),
     shareNote: $("shareNote"),
+    chestBtn: $("chestBtn"),
+    chestOverlay: $("chestOverlay"),
+    chestIcon: $("chestIcon"),
+    chestTitle: $("chestTitle"),
+    chestDesc: $("chestDesc"),
+    chestClose: $("chestClose"),
+    evoOverlay: $("evoOverlay"),
+    evoIcon: $("evoIcon"),
+    evoName: $("evoName"),
+    evoDesc: $("evoDesc"),
+    evoClose: $("evoClose"),
+    evoTitle: $("evoTitle"),
+    duoBadge: $("duoBadge"),
+    frenzyBadge: $("frenzyBadge"),
+    frenzyLeft: $("frenzyLeft"),
+    beeLayer: $("beeLayer"),
     toast: $("toast")
   };
 
@@ -1556,7 +1898,7 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   function newPlayer() {
-    return { name: savedName() || "Игрок 1", taps: 0, honey: 0, joinedAt: Date.now(), pushId: "" };
+    return { name: savedName() || "Игрок 1", taps: 0, honey: 0, joinedAt: Date.now(), pushId: "", lastSeen: 0 };
   }
 
   function normalize(raw) {
@@ -1588,7 +1930,9 @@ window.addEventListener("DOMContentLoaded", function () {
           honey: Math.max(0, num(p.honey)),
           joinedAt: num(p.joinedAt) || Date.now(),
           // id пуш-подписки игрока — по нему напарник отправляет уведомление
-          pushId: typeof p.pushId === "string" ? p.pushId.slice(0, 64) : ""
+          pushId: typeof p.pushId === "string" ? p.pushId.slice(0, 64) : "",
+          // Время последней активности — по нему считается кооп-бонус «оба онлайн».
+          lastSeen: num(p.lastSeen)
         };
       });
     }
@@ -1617,6 +1961,9 @@ window.addEventListener("DOMContentLoaded", function () {
   let lastDuoRender = 0;
   let lastPushUiRender = 0;
   let tapBucket = { honey: 0, taps: 0, since: Date.now() };
+  let frenzyUntil = 0;
+  let beeTimer = null;
+  let beeEl = null;
   const sync = { room: null, backend: null, db: null, ref: null, connectedRef: null, channel: null, timer: null, applying: false, online: false, cloudError: false };
 
   /* ---------- Производные значения ---------- */
@@ -1654,10 +2001,41 @@ window.addEventListener("DOMContentLoaded", function () {
     return { level: level, into: rest, need: expNeed(level) };
   }
 
+  function evolutionIndex(level) {
+    let index = 0;
+    EVOLUTIONS.forEach(function (stage, i) { if (level >= stage.lv) index = i; });
+    return index;
+  }
+
+  function evolutionFor(level) {
+    return EVOLUTIONS[evolutionIndex(level)];
+  }
+
   function stageFor(level) {
-    let name = STAGES[0].name;
-    STAGES.forEach(function (stage) { if (level >= stage.lv) name = stage.name; });
-    return name;
+    return evolutionFor(level).name;
+  }
+
+  // Кооп-бонус: напарник онлайн, если его lastSeen обновился меньше 12 секунд назад.
+  function partnerOnline() {
+    if (state.mode !== "duo" || document.hidden) return false;
+    const now = Date.now();
+    return Object.keys(state.players).some(function (pid) {
+      if (pid === myId) return false;
+      const seen = num(state.players[pid].lastSeen);
+      return seen > 0 && now - seen < PARTNER_ONLINE_MS;
+    });
+  }
+
+  function frenzyActive() {
+    return frenzyUntil > Date.now();
+  }
+
+  // Отмечаем себя онлайн в комнате (тап + раз в 5 секунд).
+  function touchSeen() {
+    if (state.mode !== "duo" || !sync.room) return;
+    ensureMe();
+    if (state.players[myId]) state.players[myId].lastSeen = Date.now();
+    if (!document.hidden) push();
   }
 
   function playerName() {
@@ -1671,8 +2049,14 @@ window.addEventListener("DOMContentLoaded", function () {
       .sort(function (a, b) { return a.joinedAt - b.joinedAt; });
   }
 
-  function addLog(text) {
-    state.log.unshift({ pid: myId, name: playerName(), text: text, t: Date.now() });
+  function addLog(text, opts) {
+    const system = !!(opts && opts.system);
+    state.log.unshift({
+      pid: system ? "" : myId,
+      name: system ? "" : playerName(),
+      text: text,
+      t: Date.now()
+    });
     state.log = state.log.slice(0, 5);
   }
 
@@ -1682,7 +2066,13 @@ window.addEventListener("DOMContentLoaded", function () {
     const after = levelInfo(state.exp).level;
     if (after > before) {
       addLog("поднял(а) уровень до " + after);
-      toast("Новый уровень " + after + " — " + stageFor(after));
+      const evoBefore = evolutionIndex(before);
+      const evoAfter = evolutionIndex(after);
+      if (evoAfter > evoBefore) {
+        showEvolution(EVOLUTIONS[evoAfter]);
+      } else {
+        toast("Новый уровень " + after + " — " + stageFor(after));
+      }
       notifyLevelUp(after);
     }
   }
@@ -1945,7 +2335,8 @@ window.addEventListener("DOMContentLoaded", function () {
     }
     state.players[myId] = {
       name: stored || name, taps: 0, honey: 0, joinedAt: Date.now(),
-      pushId: os.subscriptionId ? String(os.subscriptionId) : ""
+      pushId: os.subscriptionId ? String(os.subscriptionId) : "",
+      lastSeen: Date.now()
     };
   }
 
@@ -2411,6 +2802,160 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   /* ============================================================
+     7.2) КООП-БОНУС, ЗОЛОТАЯ ПЧЕЛА И ЛЕСНОЙ СУНДУК
+     ============================================================ */
+  // Обновляет видимые подсказки бонусов: бейдж «оба онлайн», таймер безумия, готовность сундука.
+  function refreshBonuses() {
+    const now = Date.now();
+    els.duoBadge.hidden = !partnerOnline();
+
+    const left = frenzyUntil - now;
+    els.frenzyBadge.hidden = left <= 0;
+    if (left > 0) els.frenzyLeft.textContent = String(Math.ceil(left / 1000));
+
+    els.chestBtn.dataset.ready = chestReady() ? "1" : "0";
+  }
+
+  /* ---------- Ежедневный сундук (раз в 24 часа, без штрафов) ---------- */
+  function chestLastAt() {
+    try { return Number(localStorage.getItem(CHEST_KEY)) || 0; } catch (e) { return 0; }
+  }
+
+  function chestReady() {
+    return Date.now() - chestLastAt() >= CHEST_COOLDOWN_MS;
+  }
+
+  function chestWaitText() {
+    const left = Math.max(0, CHEST_COOLDOWN_MS - (Date.now() - chestLastAt()));
+    const hours = Math.floor(left / 3600000);
+    const minutes = Math.max(1, Math.ceil((left % 3600000) / 60000));
+    return hours > 0 ? hours + " ч " + minutes + " мин" : minutes + " мин";
+  }
+
+  function showChest(icon, title, desc) {
+    els.chestIcon.textContent = icon;
+    els.chestTitle.textContent = title;
+    els.chestDesc.textContent = desc;
+    els.chestOverlay.hidden = false;
+  }
+
+  function openChest() {
+    if (!chestReady()) {
+      toast("Сундук откроется через " + chestWaitText());
+      return;
+    }
+
+    const roll = Math.random();
+    let icon;
+    let title;
+    let desc;
+
+    if (roll < 0.3) {
+      const reward = Math.round(tapValue() * 60);
+      state.honey += reward;
+      icon = "🍯";
+      title = "Мешочек мёда";
+      desc = "+" + reward + " мёда в копилку!";
+    } else if (roll < 0.5) {
+      state.energy = maxEnergy();
+      icon = "⚡";
+      title = "Полный заряд бодрости";
+      desc = "Энергия восстановлена до " + maxEnergy() + ".";
+    } else if (roll < 0.75) {
+      state.satiety = Math.min(100, state.satiety + 50);
+      icon = "🍲";
+      title = "Вкусный обед";
+      desc = "+50 к сытости и +50 опыта медведю.";
+      addExp(50);
+    } else {
+      frenzyUntil = Date.now() + FRENZY_MS;
+      icon = "🔥";
+      title = "Режим «Безумие»";
+      desc = "Тапы дают ×2 мёда целых 30 секунд!";
+    }
+
+    try { localStorage.setItem(CHEST_KEY, String(Date.now())); } catch (e) { /* noop */ }
+    addLog("🎁 " + playerName() + " открыл(а) сундук: " + title, { system: true });
+    saveLocal();
+    push();
+    renderAll();
+    showChest(icon, title, desc);
+  }
+
+  /* ---------- Мини-ивент «Золотая пчела» ---------- */
+  function scheduleBee() {
+    clearTimeout(beeTimer);
+    beeTimer = null;
+    if (document.hidden) return;
+    beeTimer = setTimeout(function () {
+      beeTimer = null;
+      spawnBee();
+      scheduleBee();
+    }, 90000 + Math.random() * 60000);
+  }
+
+  function removeBee(bee) {
+    if (beeEl === bee) beeEl = null;
+    if (bee.parentNode) bee.parentNode.removeChild(bee);
+  }
+
+  function spawnBee() {
+    if (document.hidden || beeEl || !els.beeLayer) return;
+    const bee = document.createElement("button");
+    bee.type = "button";
+    bee.className = "gold-bee";
+    bee.setAttribute("aria-label", "Поймать золотую пчелу");
+    const body = document.createElement("span");
+    body.className = "bee-body";
+    body.textContent = "🐝";
+    bee.appendChild(body);
+    bee.style.top = (22 + Math.random() * 40).toFixed(1) + "%";
+
+    bee.addEventListener("pointerdown", function (event) {
+      event.preventDefault();
+      if (beeEl !== bee) return;
+      catchBee(bee);
+      removeBee(bee);
+    });
+    bee.addEventListener("animationend", function (event) {
+      if (event.animationName === "beeFly") removeBee(bee);
+    });
+    // Страховка, если animationend не придёт (вкладка была в фоне и т.п.).
+    setTimeout(function () { removeBee(bee); }, BEE_FLIGHT_MS + 600);
+
+    els.beeLayer.appendChild(bee);
+    beeEl = bee;
+  }
+
+  function catchBee(bee) {
+    const rect = bee.getBoundingClientRect();
+    const layerRect = els.beeLayer.getBoundingClientRect();
+    const flash = document.createElement("div");
+    flash.className = "bee-flash";
+    flash.style.left = (rect.left - layerRect.left + rect.width / 2) + "px";
+    flash.style.top = (rect.top - layerRect.top + rect.height / 2) + "px";
+    els.beeLayer.appendChild(flash);
+    setTimeout(function () { flash.remove(); }, 600);
+
+    const reward = Math.round(tapValue() * 40);
+    state.honey += reward;
+    state.energy = Math.min(maxEnergy(), state.energy + maxEnergy() * 0.3);
+    addLog("🐝 " + playerName() + " поймал(а) золотую пчелу и получил(а) +" + reward + " мёда!", { system: true });
+    toast("🐝 Золотая пчела! +" + reward + " мёда и +30% энергии");
+    saveLocal();
+    push();
+    renderAll();
+  }
+
+  /* ---------- Поздравление с новой эволюцией ---------- */
+  function showEvolution(stage) {
+    els.evoIcon.textContent = stage.icon;
+    els.evoName.textContent = stage.name;
+    els.evoDesc.textContent = stage.desc;
+    els.evoOverlay.hidden = false;
+  }
+
+  /* ============================================================
      8) ДЕЙСТВИЯ
      ============================================================ */
   let lastLowToast = 0;
@@ -2431,12 +2976,21 @@ window.addEventListener("DOMContentLoaded", function () {
     }
 
     state.energy -= cost;
-    const gain = tapValue();
+
+    // Кооп-бонус (если оба онлайн) и «Безумие» из сундука умножают мёд.
+    const duoBonus = partnerOnline();
+    const frenzy = frenzyActive();
+    let mult = 1;
+    if (duoBonus) mult *= 2;
+    if (frenzy) mult *= 2;
+    const gain = Math.round(tapValue() * mult);
     state.honey += gain;
 
     ensureMe();
-    state.players[myId].taps += 1;
-    state.players[myId].honey += gain;
+    const me = state.players[myId];
+    me.taps += 1;
+    me.honey += gain;
+    if (state.mode === "duo") me.lastSeen = now;
     tapBucket.honey += gain;
     tapBucket.taps += 1;
 
@@ -2448,7 +3002,7 @@ window.addEventListener("DOMContentLoaded", function () {
     const rect = els.bearWrap.getBoundingClientRect();
     const x = (event.clientX || rect.left + rect.width / 2) - rect.left;
     const y = (event.clientY || rect.top + rect.height / 2) - rect.top;
-    floatText("+" + gain, x, y);
+    floatText("+" + gain + (mult > 1 ? " ×" + mult : ""), x, y, mult > 1);
 
     els.bearBtn.classList.add("is-tap");
     setTimeout(function () { els.bearBtn.classList.remove("is-tap"); }, 110);
@@ -2457,9 +3011,9 @@ window.addEventListener("DOMContentLoaded", function () {
     push();
   }
 
-  function floatText(text, x, y) {
+  function floatText(text, x, y, gold) {
     const el = document.createElement("div");
-    el.className = "float";
+    el.className = "float" + (gold ? " gold" : "");
     el.textContent = text;
     el.style.left = x + "px";
     el.style.top = y + "px";
@@ -2563,7 +3117,11 @@ window.addEventListener("DOMContentLoaded", function () {
   function renderCore() {
     const info = levelInfo(state.exp);
     els.honey.textContent = fmt(state.honey);
-    els.stage.textContent = stageFor(info.level);
+    const evo = evolutionFor(info.level);
+    els.stage.textContent = evo.short;
+    els.evoTitle.textContent = evo.name;
+    els.bearWrap.classList.remove("evo-1", "evo-2", "evo-3", "evo-4");
+    els.bearWrap.classList.add(evo.cls);
     els.levelNum.textContent = "ур. " + info.level;
     els.nameLabel.textContent = playerName();
 
@@ -2654,13 +3212,16 @@ window.addEventListener("DOMContentLoaded", function () {
       state.log.slice(0, 5).forEach(function (entry) {
         const line = document.createElement("div");
         line.className = "log-line";
-        const who = document.createElement("b");
-        // Имя берём из живой записи игрока: после смены ника лента тоже обновится.
-        const livePlayer = state.players[entry.pid];
-        who.textContent = (livePlayer && livePlayer.name ? livePlayer.name : entry.name) + ":";
         const text = document.createElement("span");
         text.textContent = entry.text;
-        line.appendChild(who);
+        // Системные записи (пчела, сундук) уже содержат имя в тексте.
+        if (entry.pid) {
+          const who = document.createElement("b");
+          // Имя берём из живой записи игрока: после смены ника лента тоже обновится.
+          const livePlayer = state.players[entry.pid];
+          who.textContent = (livePlayer && livePlayer.name ? livePlayer.name : entry.name) + ":";
+          line.appendChild(who);
+        }
         line.appendChild(text);
         els.log.appendChild(line);
       });
@@ -2759,6 +3320,7 @@ window.addEventListener("DOMContentLoaded", function () {
     renderDuo();
     renderSheet();
     renderPushUi();
+    refreshBonuses();
   }
 
   /* ============================================================
@@ -2929,6 +3491,7 @@ window.addEventListener("DOMContentLoaded", function () {
       if (state.mode === "duo") renderDuo();
     }
 
+    refreshBonuses();
     renderCore();
 
     if (activeTab && now - lastSheetRender > 900) renderSheet();
@@ -3026,6 +3589,17 @@ window.addEventListener("DOMContentLoaded", function () {
     if (event.target === els.nameOverlay) closeNameDialog();
   });
 
+  els.chestBtn.addEventListener("click", openChest);
+  els.chestClose.addEventListener("click", function () { els.chestOverlay.hidden = true; });
+  els.chestOverlay.addEventListener("click", function (event) {
+    if (event.target === els.chestOverlay) els.chestOverlay.hidden = true;
+  });
+
+  els.evoClose.addEventListener("click", function () { els.evoOverlay.hidden = true; });
+  els.evoOverlay.addEventListener("click", function (event) {
+    if (event.target === els.evoOverlay) els.evoOverlay.hidden = true;
+  });
+
   els.iosClose.addEventListener("click", function () { els.iosOverlay.hidden = true; });
   els.iosOverlay.addEventListener("click", function (event) {
     if (event.target === els.iosOverlay) els.iosOverlay.hidden = true;
@@ -3098,6 +3672,10 @@ window.addEventListener("DOMContentLoaded", function () {
     }
     loadOneSignal();
     setInterval(tick, 250);
+    // «Онлайн» для кооп-бонуса: отмечаемся раз в 5 секунд, пока вкладка активна.
+    setInterval(function () { if (!document.hidden) touchSeen(); }, 5000);
+    scheduleBee();
+    refreshBonuses();
 
     setTimeout(function () {
       els.main.scrollTop = 0;
@@ -3110,11 +3688,16 @@ window.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden") {
       pushNow();
+      clearTimeout(beeTimer);
+      beeTimer = null;
+      if (beeEl) removeBee(beeEl);
     } else {
       const now = Date.now();
       simulate((now - state.lastTick) / 1000);
       state.lastTick = now;
+      touchSeen();
       renderAll();
+      scheduleBee();
     }
   });
 
