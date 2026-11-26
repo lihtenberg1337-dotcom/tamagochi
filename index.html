@@ -7,13 +7,13 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1) При каждом открытии проверяет версию: если она не v8 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v9 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v8";
+    var APP_VERSION = "v9";
     var VERSION_KEY = "bear:app-version";
     var ONESIGNAL_DIR = "/tamagochi/";
     var ONESIGNAL_FILE = "/tamagochi/OneSignalSDKWorker.js";
@@ -1245,7 +1245,7 @@ window.addEventListener("DOMContentLoaded", function () {
      Кэширующий sw.js больше не регистрируется: игра всегда онлайн.
      ------------------------------------------------------------ */
   const ONESIGNAL_APP_ID = "b9c0ccd4-5fae-4d18-8ba6-ac385e7ecc6c";
-  const ONESIGNAL_REST_KEY = "os_v2_app_xhamzvc7vzgrrc5gvq4f47wmns2c3bviq6pekse6nlg6l3z65bijymlzntaq5apmueijiyl4ejqy2l5y4prkhmfzlamclskqish4meq";
+  const ONESIGNAL_REST_KEY = "os_v2_app_xhamzvc7vzgrrc5gvq4f47wmnsxp7cxydfre3nf3v6pnvlq4mhcc25oa6o2fblwpjjlnbexszw3drwd4mevz5mp2uag5khvixcfzttq";
   const POKE_COOLDOWN_MS = 30 * 60 * 1000;
 
   const FIREBASE_READY =
@@ -2139,7 +2139,9 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   function sendPush(subscriptionIds, text) {
-    if (!pushConfigured() || !subscriptionIds.length) return Promise.resolve(false);
+    if (!pushConfigured() || !subscriptionIds.length) {
+      return Promise.resolve({ ok: false, error: "пуш не настроен или нет подписок" });
+    }
 
     return fetch("https://api.onesignal.com/notifications", {
       method: "POST",
@@ -2158,14 +2160,27 @@ window.addEventListener("DOMContentLoaded", function () {
         url: roomLink(state.room || "")
       })
     }).then(function (res) {
-      if (res.ok) return true;
+      // Читаем тело всегда: в ответе OneSignal лежит причина отказа.
       return res.text().then(function (body) {
+        var data = null;
+        try { data = body ? JSON.parse(body) : null; } catch (e) { data = null; }
+
+        if (res.ok) return { ok: true, error: "" };
+
+        var detail;
+        if (data && data.errors) detail = JSON.stringify(data.errors);
+        else if (body) detail = String(body).slice(0, 300);
+        else detail = "пустой ответ";
+
         console.warn("OneSignal: отправка не удалась", res.status, body);
-        return false;
-      }).catch(function () { return false; });
+        return { ok: false, error: "HTTP " + res.status + ": " + detail };
+      }).catch(function (e) {
+        console.warn("OneSignal: не удалось прочитать ответ", e);
+        return { ok: false, error: "HTTP " + res.status + ": не удалось прочитать ответ" };
+      });
     }).catch(function (e) {
       console.warn("OneSignal: сеть недоступна", e);
-      return false;
+      return { ok: false, error: String((e && e.message) || e) };
     });
   }
 
@@ -2203,10 +2218,10 @@ window.addEventListener("DOMContentLoaded", function () {
     }
 
     els.pokeBtn.disabled = true;
-    sendPush(ids, "Медведь соскучился! Напарник зовёт тебя потапать 🐻").then(function (ok) {
-      if (!ok) {
+    sendPush(ids, "Медведь соскучился! Напарник зовёт тебя потапать 🐻").then(function (result) {
+      if (!result.ok) {
         els.pokeBtn.disabled = false;
-        toast("Не удалось отправить пуш — проверь ONESIGNAL_REST_KEY");
+        toast("Не удалось отправить пуш — " + result.error);
         return;
       }
       try { localStorage.setItem(pokeCooldownKey(), String(Date.now() + POKE_COOLDOWN_MS)); } catch (e) { /* noop */ }
