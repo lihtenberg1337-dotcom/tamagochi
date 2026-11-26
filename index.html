@@ -7,13 +7,13 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v16 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v17 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v16";
+    var APP_VERSION = "v17";
     var VERSION_KEY = "bear:app-version";
     // Ключи bear:player-name (ник), bear:last-chest (таймер сундука),
     // bear:room:* (код комнаты) и bear:pid не трогаем — сброс версии
@@ -800,13 +800,20 @@
     background: var(--panel);
     border-top: 1px solid var(--line);
     border-radius: 24px 24px 0 0;
-    transform: translateY(112%);
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(calc(100% + 40px + env(safe-area-inset-bottom, 0px)));
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: transform 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
     box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.45);
   }
 
   .sheet.open {
     transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+    transition: transform 0.25s ease, opacity 0.2s ease, visibility 0s linear 0s;
   }
 
   .sheet-head {
@@ -2381,7 +2388,7 @@
       <section class="set-block">
         <div class="set-title">Обновление</div>
         <button class="refresh-btn" id="hardRefresh" type="button">🔄 Обновить игру</button>
-        <div class="version-badge" id="versionBadge">Версия: v16</div>
+        <div class="version-badge" id="versionBadge">Версия: v17</div>
       </section>
     </div>
   </div>
