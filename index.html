@@ -7,13 +7,13 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v10 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v11 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v10";
+    var APP_VERSION = "v11";
     var VERSION_KEY = "bear:app-version";
     var ONESIGNAL_DIR = "/tamagochi/";
     var ONESIGNAL_FILE = "/tamagochi/OneSignalSDKWorker.js";
@@ -1142,7 +1142,7 @@
       </div>
     </section>
 
-    <div class="version-badge" id="versionBadge">Версия: v10 • Кэш: чист</div>
+    <div class="version-badge" id="versionBadge">Версия: v11 • Кэш: чист</div>
   </main>
 
   <section class="sheet" id="sheet" aria-label="Меню">
@@ -1249,13 +1249,13 @@ window.addEventListener("DOMContentLoaded", function () {
      1.1) ПУШ-УВЕДОМЛЕНИЯ (OneSignal Web SDK v16)
      ------------------------------------------------------------
      OneSignal Dashboard → Settings → Keys & IDs:
-       • ONESIGNAL_APP_ID   — OneSignal App ID
-       • ONESIGNAL_REST_KEY — REST API Key
+       • ONESIGNAL_APP_ID — OneSignal App ID (публичный, можно в коде)
 
-     ВАЖНО: страница на GitHub Pages открыта всем, поэтому REST-ключ
-     виден любому в исходниках. Для игры с друзьями это допустимо,
-     но если проект станет публичным — отправку лучше перенести
-     на свой прокси (например, Cloudflare Worker).
+     Отправка идёт через свой прокси на Cloudflare Worker
+     (PUSH_PROXY_URL): REST-ключ OneSignal хранится только в Worker
+     и больше не попадает в исходники GitHub Pages. Заодно это
+     обходит блокировку CORS и сетевой блок api.onesignal.com
+     в iOS Safari.
 
      Service worker OneSignal лежит в корне проекта:
      /tamagochi/OneSignalSDKWorker.js со scope /tamagochi/ — ровно то,
@@ -1263,7 +1263,9 @@ window.addEventListener("DOMContentLoaded", function () {
      Кэширующий sw.js больше не регистрируется: игра всегда онлайн.
      ------------------------------------------------------------ */
   const ONESIGNAL_APP_ID = "b9c0ccd4-5fae-4d18-8ba6-ac385e7ecc6c";
-  const ONESIGNAL_REST_KEY = "os_v2_app_xhamzvc7vzgrrc5gvq4f47wmnsxp7cxydfre3nf3v6pnvlq4mhcc25oa6o2fblwpjjlnbexszw3drwd4mevz5mp2uag5khvixcfzttq";
+  // Прокси на Cloudflare Worker: принимает JSON и отправляет пуш в OneSignal
+  // со своего сервера, поэтому REST-ключ живёт только там.
+  const PUSH_PROXY_URL = "https://medved-notify.lihtenberg1337.workers.dev";
   const POKE_COOLDOWN_MS = 30 * 60 * 1000;
 
   const FIREBASE_READY =
@@ -1897,7 +1899,7 @@ window.addEventListener("DOMContentLoaded", function () {
   const ONESIGNAL_SW_FILE = ONESIGNAL_SW_DIR + "OneSignalSDKWorker.js";
 
   function pushConfigured() {
-    return !!ONESIGNAL_APP_ID && !!ONESIGNAL_REST_KEY;
+    return !!ONESIGNAL_APP_ID && !!PUSH_PROXY_URL;
   }
 
   function isIosDevice() {
@@ -2057,7 +2059,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
   function enablePush() {
     if (!pushConfigured()) {
-      toast("Пуш не настроен: впиши ONESIGNAL_APP_ID и ONESIGNAL_REST_KEY");
+      toast("Пуш не настроен: проверь ONESIGNAL_APP_ID и PUSH_PROXY_URL");
       return;
     }
     if (!window.isSecureContext) {
@@ -2161,12 +2163,11 @@ window.addEventListener("DOMContentLoaded", function () {
       return Promise.resolve({ ok: false, error: "пуш не настроен или нет подписок" });
     }
 
-    return fetch("https://api.onesignal.com/notifications?c=push", {
+    return fetch(PUSH_PROXY_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        // Для ключей os_v2_app_… нужна схема "Key"; старые REST-ключи — "Basic".
-        Authorization: (ONESIGNAL_REST_KEY.indexOf("os_v2_") === 0 ? "Key " : "Basic ") + ONESIGNAL_REST_KEY
+        // Никакой авторизации на клиенте: ключ OneSignal лежит в Worker.
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
@@ -2231,7 +2232,7 @@ window.addEventListener("DOMContentLoaded", function () {
       return;
     }
     if (!pushConfigured()) {
-      toast("Пуш не настроен: впиши ONESIGNAL_APP_ID и ONESIGNAL_REST_KEY");
+      toast("Пуш не настроен: проверь ONESIGNAL_APP_ID и PUSH_PROXY_URL");
       return;
     }
 
@@ -2294,7 +2295,7 @@ window.addEventListener("DOMContentLoaded", function () {
         ? "Не удалось загрузить сервер уведомлений — проверь интернет или VPN."
         : "Уведомления не запустились: " + String(os.error).slice(0, 120);
     } else if (!configured) {
-      hint = "Чтобы пуш заработал, впиши ONESIGNAL_APP_ID и ONESIGNAL_REST_KEY в начале скрипта.";
+      hint = "Чтобы пуш заработал, проверь ONESIGNAL_APP_ID и PUSH_PROXY_URL в начале скрипта.";
     }
     els.pushHint.hidden = !hint;
     els.pushHint.textContent = hint;
