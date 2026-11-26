@@ -7,13 +7,13 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v9 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v10 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v9";
+    var APP_VERSION = "v10";
     var VERSION_KEY = "bear:app-version";
     var ONESIGNAL_DIR = "/tamagochi/";
     var ONESIGNAL_FILE = "/tamagochi/OneSignalSDKWorker.js";
@@ -234,6 +234,22 @@
     color: var(--honey-soft);
     border-color: rgba(242, 184, 60, 0.3);
     background: rgba(242, 184, 60, 0.08);
+  }
+
+  .version-badge {
+    width: fit-content;
+    margin: 4px auto 16px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-align: center;
+    flex: 0 0 auto;
+    user-select: none;
   }
 
   /* ---------- Скролл-зона ---------- */
@@ -1125,6 +1141,8 @@
         <button class="install-close" id="installClose" type="button" aria-label="Скрыть на 3 дня">✕</button>
       </div>
     </section>
+
+    <div class="version-badge" id="versionBadge">Версия: v10 • Кэш: чист</div>
   </main>
 
   <section class="sheet" id="sheet" aria-label="Меню">
@@ -2143,12 +2161,11 @@ window.addEventListener("DOMContentLoaded", function () {
       return Promise.resolve({ ok: false, error: "пуш не настроен или нет подписок" });
     }
 
-    return fetch("https://api.onesignal.com/notifications", {
+    return fetch("https://api.onesignal.com/notifications?c=push", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Новые App API keys (os_v2_app_…) требуют схему "Key",
-        // старые REST-ключи работают по схеме "Basic".
+        // Для ключей os_v2_app_… нужна схема "Key"; старые REST-ключи — "Basic".
         Authorization: (ONESIGNAL_REST_KEY.indexOf("os_v2_") === 0 ? "Key " : "Basic ") + ONESIGNAL_REST_KEY
       },
       body: JSON.stringify({
@@ -2179,8 +2196,15 @@ window.addEventListener("DOMContentLoaded", function () {
         return { ok: false, error: "HTTP " + res.status + ": не удалось прочитать ответ" };
       });
     }).catch(function (e) {
+      var msg = String((e && e.message) || e);
       console.warn("OneSignal: сеть недоступна", e);
-      return { ok: false, error: String((e && e.message) || e) };
+      if (/load failed|failed to fetch|networkerror|loadfailed/i.test(msg)) {
+        return {
+          ok: false,
+          error: "Сеть/Safari заблокировал запрос к OneSignal (попробуй с VPN или отключи блокировщик трекеров). Детали: " + msg
+        };
+      }
+      return { ok: false, error: msg };
     });
   }
 
