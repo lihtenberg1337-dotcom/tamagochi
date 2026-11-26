@@ -7,13 +7,13 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v15 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v16 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v15";
+    var APP_VERSION = "v16";
     var VERSION_KEY = "bear:app-version";
     // Ключи bear:player-name (ник), bear:last-chest (таймер сундука),
     // bear:room:* (код комнаты) и bear:pid не трогаем — сброс версии
@@ -1578,6 +1578,490 @@
 
   .ach-item .buy { padding: 8px 10px; font-size: 12px; }
 
+  /* ============================================================
+     v16 — APP SHELL: 3 зоны, безопасные отступы, 4 вкладки
+     ============================================================ */
+  .app {
+    --nav-h: calc(62px + env(safe-area-inset-bottom));
+    height: 100vh;
+    height: 100dvh;
+    max-width: 520px;
+    overflow: hidden;
+  }
+
+  .topbar {
+    gap: 8px;
+    min-width: 0;
+    padding: calc(env(safe-area-inset-top) + 8px) 12px 6px;
+  }
+
+  .hdr-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .honey-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--honey);
+    font-weight: 800;
+    font-size: clamp(20px, 5.4vw, 26px);
+    line-height: 1.05;
+    letter-spacing: 0.2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .honey-line .icon {
+    font-size: clamp(15px, 4vw, 18px);
+  }
+
+  .hdr-sub {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    font-size: clamp(10.5px, 2.9vw, 12px);
+    color: var(--muted);
+  }
+
+  .hdr-sub .lvl {
+    flex: 0 0 auto;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(242, 184, 60, 0.14);
+    color: var(--honey);
+    font-weight: 700;
+    font-size: inherit;
+  }
+
+  .hdr-sub .stage {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
+  }
+
+  .top-actions {
+    gap: 6px;
+  }
+
+  .top-actions .chest-btn,
+  .top-actions .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+
+  /* ЗОНА 2 — арена */
+  .arena {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 2px 12px 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .arena-top {
+    flex: 0 0 auto;
+    display: grid;
+    gap: 6px;
+    padding-top: 2px;
+  }
+
+  .bars-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .bars-row .bar-head {
+    gap: 4px;
+    margin-bottom: 4px;
+    font-size: clamp(10px, 2.9vw, 11.5px);
+  }
+
+  .bars-row .bar-head span:first-child {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .bars-row .bar-head span:last-child {
+    flex: 0 0 auto;
+  }
+
+  .bars-row .bar {
+    height: 7px;
+  }
+
+  .duo-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    padding: 5px 9px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--line);
+    font-size: clamp(10.5px, 2.9vw, 12px);
+    color: var(--muted);
+  }
+
+  .duo-line[hidden] { display: none; }
+
+  .partner-state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6f8577;
+    flex: 0 0 auto;
+  }
+
+  .status-dot.on {
+    background: #8ddc95;
+    box-shadow: 0 0 0 3px rgba(141, 220, 149, 0.18);
+  }
+
+  .poke-mini {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border-radius: 9px;
+    background: rgba(111, 174, 116, 0.16);
+    border: 1px solid rgba(111, 174, 116, 0.38);
+    color: #cfe9cf;
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .poke-mini[hidden] { display: none; }
+  .poke-mini:disabled { opacity: 0.55; }
+
+  .hero {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .bear-wrap {
+    width: clamp(160px, 34vh, 260px);
+    max-width: min(76vw, 260px);
+    margin: 0 auto;
+    flex: 0 0 auto;
+  }
+
+  .hint {
+    margin: 0;
+    font-size: clamp(10.5px, 2.9vw, 12px);
+    line-height: 1.3;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ЗОНА 3 — нижняя навигация */
+  .tabbar {
+    position: relative;
+    z-index: 30;
+    flex: 0 0 auto;
+    height: var(--nav-h);
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+    background: rgba(9, 16, 12, 0.97);
+    border-top: 1px solid rgba(34, 54, 42, 0.8);
+  }
+
+  .tab {
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 4px 2px;
+    border-radius: 12px;
+    font-size: clamp(9.5px, 2.8vw, 11.5px);
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .tab .tab-ico {
+    font-style: normal;
+    font-size: clamp(17px, 4.8vw, 21px);
+    line-height: 1;
+  }
+
+  .tab span { font-size: inherit; }
+
+  /* Шторка */
+  .sheet {
+    bottom: var(--nav-h);
+    max-height: 55dvh;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .sheet-head {
+    padding: 12px 14px 8px;
+  }
+
+  .sheet-head h2 {
+    font-size: clamp(15px, 4.2vw, 17px);
+  }
+
+  .sheet-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .sheet-list {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .sheet-list[hidden] { display: none; }
+
+  .sheet-exp {
+    margin: 0 0 10px;
+  }
+
+  .sheet-exp[hidden] { display: none; }
+
+  .sheet-list.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .grid-2 .item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .grid-2 .item-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+
+  .grid-2 .item-info { width: 100%; }
+
+  .grid-2 .item-name {
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 12.5px;
+    line-height: 1.2;
+  }
+
+  .grid-2 .item-lvl { font-size: 10px; }
+
+  .grid-2 .item-sub {
+    font-size: 10.5px;
+    line-height: 1.25;
+  }
+
+  .grid-2 .buy {
+    width: 100%;
+    justify-content: center;
+    margin-top: auto;
+    padding: 7px 6px;
+    font-size: 12px;
+  }
+
+  .grid-2 .wear-title {
+    grid-column: 1 / -1;
+    margin: 6px 0 0;
+  }
+
+  /* Лог и вклад игроков внутри шторки */
+  .duo-pane {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--line);
+  }
+
+  .duo-pane[hidden] { display: none; }
+
+  .duo-pane .duo-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .duo-pane .duo-head strong {
+    color: var(--honey-soft);
+    font-size: 12px;
+  }
+
+  .duo-pane .contrib-bar {
+    display: flex;
+    height: 9px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .duo-pane #c1 {
+    background: linear-gradient(90deg, #4f8d59, #8ddc95);
+    transition: width 0.4s ease;
+  }
+
+  .duo-pane #c2 {
+    background: linear-gradient(90deg, #e6a93c, #f7d98a);
+    transition: width 0.4s ease;
+  }
+
+  .duo-pane .contrib-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 10px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .duo-pane .log {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+    display: grid;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  /* Меню настроек */
+  .settings-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 400px;
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .settings-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 14px 10px;
+  }
+
+  .settings-head h1 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .settings-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .set-block {
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .set-block:first-child { border-top: 0; padding-top: 0; }
+
+  .set-title {
+    margin-bottom: 8px;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--honey-soft);
+  }
+
+  .set-block .name-chip {
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 13.5px;
+  }
+
+  .set-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .set-block .mode-chip {
+    max-width: none;
+  }
+
+  .set-block .evo-line {
+    margin: 0;
+    font-size: 11.5px;
+    min-width: 0;
+  }
+
+  .set-block .btn { margin-bottom: 0; }
+
+  .set-block .push-block { margin-top: 0; }
+
+  .set-block .version-badge {
+    margin: 12px auto 0;
+  }
+
+  @media (max-width: 360px) {
+    .top-actions .chest-btn,
+    .top-actions .icon-btn { width: 34px; height: 34px; font-size: 16px; }
+    .grid-2 .item { padding: 7px; }
+    .grid-2 .item-name { font-size: 12px; }
+    .grid-2 .buy { padding: 6px 4px; font-size: 11.5px; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     * {
       animation-duration: 0.001s !important;
@@ -1589,15 +2073,18 @@
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="honey-pill"><span class="icon">🍯</span><span id="honey">0</span></div>
-    <div class="top-actions">
-      <button class="chest-btn" id="chestBtn" type="button" data-ready="0" title="Лесной сундук" aria-label="Открыть лесной сундук">🎁</button>
-      <button class="icon-btn" id="achBtn" type="button" title="Ачивки" aria-label="Достижения">🏆<span class="count" id="achBadge" hidden>0</span></button>
+    <div class="hdr-left">
+      <div class="honey-line"><span class="icon">🍯</span><span id="honey">0</span></div>
+      <div class="hdr-sub">
+        <span class="lvl" id="levelNum">ур. 1</span>
+        <span class="stage" id="stage">Сладкоежка</span>
+      </div>
     </div>
-    <button class="name-chip" id="nameBtn" type="button" title="Сменить ник">
-      <span class="name-text" id="nameLabel">Игрок 1</span><span class="pen">✏️</span>
-    </button>
-    <div class="mode-chip" id="modeChip">Соло</div>
+    <div class="top-actions">
+      <button class="chest-btn" id="chestBtn" type="button" data-ready="0" title="Ежедневный сундук" aria-label="Ежедневный сундук">🎁</button>
+      <button class="icon-btn" id="achBtn" type="button" title="Ачивки" aria-label="Достижения">🏆<span class="count" id="achBadge" hidden>0</span></button>
+      <button class="icon-btn" id="settingsBtn" type="button" title="Меню комнаты и настроек" aria-label="Меню комнаты и настроек">⚙️</button>
+    </div>
   </header>
 
   <div class="update-banner" id="updateBanner" hidden>
@@ -1605,19 +2092,29 @@
     <button class="update-go" id="updateBtn" type="button">Обновить</button>
   </div>
 
-  <main class="main" id="main">
-    <section class="hero">
-      <div class="status-line">
-        <span class="stage" id="stage">Сладкоежка</span>
-        <span class="lvl" id="levelNum">ур. 1</span>
+  <main class="arena" id="main">
+    <div class="arena-top">
+      <div class="bars bars-row">
+        <div class="bar-row">
+          <div class="bar-head"><span>⚡ Энергия</span><span id="energyText">100 / 100</span></div>
+          <div class="bar"><div class="fill energy" id="energyFill"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-head"><span>🍖 Сытость</span><span id="satietyText">100%</span></div>
+          <div class="bar"><div class="fill satiety" id="satietyFill"></div></div>
+        </div>
       </div>
-      <div class="evo-line">Эволюция: <b id="evoTitle">Медвежонок-сладкоежка</b></div>
+      <div class="duo-line" id="duoLine" hidden>
+        <span class="partner-state"><i class="status-dot" id="partnerDot"></i><span id="partnerText">Напарник оффлайн</span></span>
+        <button class="poke-mini" id="pokeBtn" type="button">🐾 Позвать</button>
+      </div>
+    </div>
 
+    <section class="hero">
       <div class="bear-wrap" id="bearWrap" data-head="none" data-face="none" data-bg="forest">
         <div class="bear-bg" aria-hidden="true"></div>
         <div class="bear-glow"></div>
         <div class="bonus-stack">
-          <div class="duo-badge" id="duoBadge" hidden>🔥 Вы оба онлайн! Мёд ×2</div>
           <div class="frenzy-badge" id="frenzyBadge" hidden>🔥 Безумие ×2 · <span id="frenzyLeft">30</span>с</div>
         </div>
         <button class="bear-btn" id="bearBtn" aria-label="Погладить медведя и собрать мёд">
@@ -1724,61 +2221,34 @@
       </div>
 
       <p class="hint" id="tapHint">Тап по медведю — мёд</p>
+    </section>
+  </main>
 
-      <div class="bars">
-        <div class="bar-row">
-          <div class="bar-head"><span>⚡ Энергия</span><span id="energyText">100 / 100</span></div>
-          <div class="bar"><div class="fill energy" id="energyFill"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-head"><span>🍲 Сытость</span><span id="satietyText">100%</span></div>
-          <div class="bar"><div class="fill satiety" id="satietyFill"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-head"><span>✨ Опыт</span><span id="expText">0 / 20</span></div>
-          <div class="bar"><div class="fill exp" id="expFill"></div></div>
-        </div>
+  <section class="sheet" id="sheet" aria-label="Меню">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">🍖 Уход</h2>
+      <button class="sheet-close" id="sheetClose" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-exp" id="expBlock" hidden>
+        <div class="bar-head"><span>✨ Опыт</span><span id="expText">0 / 20</span></div>
+        <div class="bar"><div class="fill exp" id="expFill"></div></div>
       </div>
-
-      <div class="duo" id="duoBlock" hidden>
+      <div class="sheet-list" id="sheetList"></div>
+      <div class="duo-pane" id="duoBlock" hidden>
         <div class="duo-head"><span>Вклад игроков</span><strong id="roomLabel"></strong></div>
         <div class="contrib-bar"><div id="c1" style="width:50%"></div><div id="c2" style="width:50%"></div></div>
         <div class="contrib-legend" id="contribLegend"></div>
         <div class="log" id="log"></div>
       </div>
-
-      <button class="invite" id="inviteBtn">Пригласить друга</button>
-
-      <div class="push-block">
-        <button class="push-btn" id="pushBtn" type="button">🔔 Включить уведомления</button>
-        <button class="push-btn poke" id="pokeBtn" type="button" hidden>🐾 Позвать напарника</button>
-        <p class="push-hint" id="pushHint" hidden></p>
-      </div>
-
-      <div class="install-plank" id="installBlock" hidden>
-        <button class="install-btn" id="installBtn" type="button">📲 Установить игру</button>
-        <button class="install-close" id="installClose" type="button" aria-label="Скрыть на 3 дня">✕</button>
-      </div>
-    </section>
-
-    <div class="version-badge" id="versionBadge">Версия: v15 • Кэш: чист</div>
-  </main>
-
-  <section class="sheet" id="sheet" aria-label="Меню">
-    <div class="sheet-head">
-      <h2 id="sheetTitle">Уход</h2>
-      <button class="sheet-close" id="sheetClose" aria-label="Закрыть">✕</button>
-    </div>
-    <div class="sheet-list" id="sheetList"></div>
-    <div class="sheet-foot">
-      <button class="refresh-btn" id="hardRefresh" type="button">🔄 Обновить игру</button>
     </div>
   </section>
 
   <nav class="tabbar">
-    <button class="tab" data-tab="care" id="tabCare">🍲 <span>Уход</span></button>
-    <button class="tab" data-tab="upgrade" id="tabUpgrade">🛠 <span>Прокачка</span></button>
-    <button class="tab" data-tab="wardrobe" id="tabWardrobe">👕 <span>Шмот</span></button>
+    <button class="tab" data-tab="care" id="tabCare" type="button"><i class="tab-ico">🍖</i><span>Уход</span></button>
+    <button class="tab" data-tab="upgrade" id="tabUpgrade" type="button"><i class="tab-ico">⚡</i><span>Прокачка</span></button>
+    <button class="tab" data-tab="wardrobe" id="tabWardrobe" type="button"><i class="tab-ico">👕</i><span>Шмот</span></button>
+    <button class="tab" data-tab="log" id="tabLog" type="button"><i class="tab-ico">📜</i><span>Лог</span></button>
   </nav>
 
   <div class="bee-layer" id="beeLayer" aria-hidden="true"></div>
@@ -1865,6 +2335,55 @@
     <p>Выполняй задания и забирай мёд. Награду можно забрать один раз.</p>
     <div class="ach-list" id="achList"></div>
     <button class="btn btn-primary" id="achClose" type="button">Закрыть</button>
+  </div>
+</div>
+
+<!-- Меню комнаты и настроек -->
+<div class="overlay" id="settingsOverlay" hidden>
+  <div class="card settings-card">
+    <div class="settings-head">
+      <h1>⚙️ Настройки</h1>
+      <button class="sheet-close" id="settingsClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="settings-body">
+      <section class="set-block">
+        <div class="set-title">Игрок</div>
+        <button class="name-chip" id="nameBtn" type="button" title="Сменить ник">
+          <span class="name-text" id="nameLabel">Игрок 1</span><span class="pen">✏️</span>
+        </button>
+        <div class="set-meta">
+          <div class="mode-chip" id="modeChip">Соло</div>
+          <div class="evo-line">Эволюция: <b id="evoTitle">Медвежонок-сладкоежка</b></div>
+        </div>
+      </section>
+
+      <section class="set-block">
+        <div class="set-title">Комната</div>
+        <button class="btn btn-ghost" id="inviteBtn" type="button">Пригласить друга</button>
+      </section>
+
+      <section class="set-block">
+        <div class="set-title">Уведомления</div>
+        <div class="push-block">
+          <button class="push-btn" id="pushBtn" type="button">🔔 Включить уведомления</button>
+          <p class="push-hint" id="pushHint" hidden></p>
+        </div>
+      </section>
+
+      <section class="set-block" id="installBlock" hidden>
+        <div class="set-title">Приложение</div>
+        <div class="install-plank">
+          <button class="install-btn" id="installBtn" type="button">📲 Установить игру</button>
+          <button class="install-close" id="installClose" type="button" aria-label="Скрыть на 3 дня">✕</button>
+        </div>
+      </section>
+
+      <section class="set-block">
+        <div class="set-title">Обновление</div>
+        <button class="refresh-btn" id="hardRefresh" type="button">🔄 Обновить игру</button>
+        <div class="version-badge" id="versionBadge">Версия: v16</div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -2134,6 +2653,14 @@ window.addEventListener("DOMContentLoaded", function () {
     tabCare: $("tabCare"),
     tabUpgrade: $("tabUpgrade"),
     tabWardrobe: $("tabWardrobe"),
+    tabLog: $("tabLog"),
+    expBlock: $("expBlock"),
+    duoLine: $("duoLine"),
+    partnerDot: $("partnerDot"),
+    partnerText: $("partnerText"),
+    settingsBtn: $("settingsBtn"),
+    settingsOverlay: $("settingsOverlay"),
+    settingsClose: $("settingsClose"),
     achBtn: $("achBtn"),
     achBadge: $("achBadge"),
     achOverlay: $("achOverlay"),
@@ -2169,7 +2696,6 @@ window.addEventListener("DOMContentLoaded", function () {
     evoDesc: $("evoDesc"),
     evoClose: $("evoClose"),
     evoTitle: $("evoTitle"),
-    duoBadge: $("duoBadge"),
     frenzyBadge: $("frenzyBadge"),
     frenzyLeft: $("frenzyLeft"),
     beeLayer: $("beeLayer"),
@@ -2190,9 +2716,11 @@ window.addEventListener("DOMContentLoaded", function () {
       return n >= 100 ? String(Math.round(n)) : String(Math.round(n * 10) / 10);
     }
     if (n < 1000000) {
-      return (Math.round(n / 100) / 10).toString().replace(".", ",") + " тыс.";
+      const k = n / 1000;
+      return (k >= 100 ? Math.round(k) : Math.round(k * 10) / 10).toString().replace(".", ",") + "K";
     }
-    return (Math.round(n / 100000) / 10).toString().replace(".", ",") + " млн";
+    const m = n / 1000000;
+    return (m >= 100 ? Math.round(m) : Math.round(m * 10) / 10).toString().replace(".", ",") + "M";
   }
 
   function plural(n, one, few, many) {
@@ -3258,8 +3786,8 @@ window.addEventListener("DOMContentLoaded", function () {
     els.pokeBtn.hidden = state.mode !== "duo";
     els.pokeBtn.disabled = left > 0;
     els.pokeBtn.textContent = left > 0
-      ? "🐾 Позвать напарника · " + Math.ceil(left / 60000) + " мин"
-      : "🐾 Позвать напарника";
+      ? "🐾 " + Math.max(1, Math.ceil(left / 60000)) + " мин"
+      : "🐾 Позвать";
   }
 
   /* ============================================================
@@ -3268,7 +3796,10 @@ window.addEventListener("DOMContentLoaded", function () {
   // Обновляет видимые подсказки бонусов: бейдж «оба онлайн», таймер безумия, готовность сундука.
   function refreshBonuses() {
     const now = Date.now();
-    els.duoBadge.hidden = !partnerOnline();
+    const online = partnerOnline();
+    els.duoLine.hidden = state.mode !== "duo";
+    els.partnerDot.classList.toggle("on", online);
+    els.partnerText.textContent = online ? "Напарник в сети • Мёд ×2" : "Напарник оффлайн";
 
     const left = frenzyUntil - now;
     els.frenzyBadge.hidden = left <= 0;
@@ -3435,6 +3966,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
   function onBearTap(event) {
     event.preventDefault();
+    if (activeTab) closeSheet();
     const now = Date.now();
     const cost = BALANCE.tapCost;
 
@@ -3682,7 +4214,7 @@ window.addEventListener("DOMContentLoaded", function () {
     const maxE = maxEnergy();
     const energyPct = Math.min(100, (state.energy / maxE) * 100);
     els.energyFill.style.width = energyPct.toFixed(1) + "%";
-    els.energyText.textContent = Math.floor(state.energy) + " / " + maxE + " · +1/" + (BALANCE.energyRegenSec / (1 + 0.25 * state.upgrades.sleep)).toFixed(1) + "с";
+    els.energyText.textContent = Math.floor(state.energy) + " / " + maxE;
 
     els.satietyFill.style.width = Math.max(0, Math.min(100, state.satiety)).toFixed(1) + "%";
     els.satietyText.textContent = Math.round(state.satiety) + "%";
@@ -3711,23 +4243,24 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   function renderDuo() {
-    const duo = state.mode === "duo";
-    els.duoBlock.hidden = !duo;
-    if (!duo) return;
+    const show = activeTab === "log";
+    els.duoBlock.hidden = !show;
+    if (!show) return;
 
+    const duo = state.mode === "duo";
     const players = sortedPlayers();
     const total = players.reduce(function (sum, player) { return sum + player.honey; }, 0);
     let p1 = 50;
     if (total > 0 && players.length > 1) {
       p1 = Math.round((players[0].honey / total) * 100);
       p1 = Math.max(0, Math.min(100, p1));
-    } else if (total > 0) {
+    } else if (total > 0 || !duo) {
       p1 = 100;
     }
 
     els.c1.style.width = p1 + "%";
     els.c2.style.width = (100 - p1) + "%";
-    els.roomLabel.textContent = "код " + (state.room || "");
+    els.roomLabel.textContent = duo ? "код " + (state.room || "") : "соло";
 
     els.contribLegend.innerHTML = "";
     if (players.length === 0) {
@@ -3743,12 +4276,13 @@ window.addEventListener("DOMContentLoaded", function () {
         const label = document.createElement("span");
         const share = index === 0 ? p1 : 100 - p1;
         const honeyPart = total > 0 ? fmt(player.honey) : "0";
-        label.textContent = player.name + ": " + share + "% (" + honeyPart + " мёда)";
+        const who = !duo && index === 0 ? "Ты" : player.name;
+        label.textContent = who + ": " + share + "% (" + honeyPart + " мёда)";
         wrap.appendChild(dot);
         wrap.appendChild(label);
         els.contribLegend.appendChild(wrap);
       });
-      if (players.length === 1) {
+      if (duo && players.length === 1) {
         const wait = document.createElement("span");
         wait.className = "p2";
         wait.textContent = "Ждём второго игрока…";
@@ -3805,8 +4339,17 @@ window.addEventListener("DOMContentLoaded", function () {
     lastSheetRender = Date.now();
     const care = activeTab === "care";
     const wardrobe = activeTab === "wardrobe";
-    els.sheetTitle.textContent = care ? "Уход" : wardrobe ? "Гардероб" : "Прокачка";
+    const log = activeTab === "log";
+    els.sheetTitle.textContent = log ? "📜 Лог" : care ? "🍖 Уход" : wardrobe ? "👕 Гардероб" : "⚡ Прокачка";
     els.sheetList.innerHTML = "";
+    els.sheetList.classList.toggle("grid-2", !log);
+    els.sheetList.hidden = log;
+    els.duoBlock.hidden = !log;
+    els.expBlock.hidden = activeTab !== "upgrade";
+    if (log) {
+      renderDuo();
+      return;
+    }
 
     if (care) {
       FOODS.forEach(function (food) {
@@ -4009,6 +4552,7 @@ window.addEventListener("DOMContentLoaded", function () {
     els.tabCare.classList.toggle("active", tab === "care");
     els.tabUpgrade.classList.toggle("active", tab === "upgrade");
     els.tabWardrobe.classList.toggle("active", tab === "wardrobe");
+    els.tabLog.classList.toggle("active", tab === "log");
     renderSheet();
     els.sheet.classList.add("open");
   }
@@ -4019,6 +4563,7 @@ window.addEventListener("DOMContentLoaded", function () {
     els.tabCare.classList.remove("active");
     els.tabUpgrade.classList.remove("active");
     els.tabWardrobe.classList.remove("active");
+    els.tabLog.classList.remove("active");
   }
 
   els.pushBtn.addEventListener("click", enablePush);
@@ -4032,6 +4577,9 @@ window.addEventListener("DOMContentLoaded", function () {
   });
   els.tabWardrobe.addEventListener("click", function () {
     if (activeTab === "wardrobe") closeSheet(); else openTab("wardrobe");
+  });
+  els.tabLog.addEventListener("click", function () {
+    if (activeTab === "log") closeSheet(); else openTab("log");
   });
   els.sheetClose.addEventListener("click", closeSheet);
 
@@ -4182,7 +4730,7 @@ window.addEventListener("DOMContentLoaded", function () {
       lastPushUiRender = now;
       renderPushUi();
     }
-    if (state.mode === "duo" && sync.room && now - lastDuoRender > 1500) {
+    if (now - lastDuoRender > 1500 && ((state.mode === "duo" && sync.room) || activeTab === "log")) {
       lastDuoRender = now;
       renderDuo();
     }
@@ -4270,6 +4818,16 @@ window.addEventListener("DOMContentLoaded", function () {
   });
   els.nameOverlay.addEventListener("click", function (event) {
     if (event.target === els.nameOverlay) closeNameDialog();
+  });
+
+  els.settingsBtn.addEventListener("click", function () {
+    closeSheet();
+    renderCore();
+    els.settingsOverlay.hidden = false;
+  });
+  els.settingsClose.addEventListener("click", function () { els.settingsOverlay.hidden = true; });
+  els.settingsOverlay.addEventListener("click", function (event) {
+    if (event.target === els.settingsOverlay) els.settingsOverlay.hidden = true;
   });
 
   els.achBtn.addEventListener("click", function () {
