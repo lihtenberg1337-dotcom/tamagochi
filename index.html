@@ -7,13 +7,13 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v14 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v15 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v14";
+    var APP_VERSION = "v15";
     var VERSION_KEY = "bear:app-version";
     // Ключи bear:player-name (ник), bear:last-chest (таймер сундука),
     // bear:room:* (код комнаты) и bear:pid не трогаем — сброс версии
@@ -749,8 +749,8 @@
     bottom: 0;
     z-index: 30;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
     padding: 10px 16px calc(env(safe-area-inset-bottom) + 10px);
     background: linear-gradient(to top, rgba(9, 16, 12, 0.98) 55%, rgba(9, 16, 12, 0));
     border-top: 1px solid rgba(34, 54, 42, 0.7);
@@ -766,7 +766,7 @@
     background: rgba(255, 255, 255, 0.045);
     border: 1px solid transparent;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
   }
 
@@ -779,6 +779,12 @@
   .tab span {
     font-size: 17px;
     line-height: 1;
+  }
+
+  @media (max-width: 360px) {
+    .tabbar { gap: 6px; padding-left: 10px; padding-right: 10px; }
+    .tab { gap: 5px; padding: 12px 4px; font-size: 12px; }
+    .tab span { font-size: 15px; }
   }
 
   /* ---------- Шторка магазина ---------- */
@@ -1364,6 +1370,214 @@
     100% { transform: translate(-50%, -50%) scale(6); opacity: 0; }
   }
 
+  /* ---------- Шапка: кнопки и бейдж ачивок ---------- */
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+  }
+
+  .icon-btn {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--line);
+    touch-action: manipulation;
+  }
+
+  .icon-btn .count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ff5a3c, #e2a11f);
+    color: #26160a;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .icon-btn .count[hidden] { display: none; }
+
+  .topbar { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .honey-pill { padding: 8px 11px; font-size: 16.5px; gap: 6px; }
+  .name-chip { max-width: 22%; }
+  .mode-chip { max-width: 24%; }
+
+  /* ---------- Фон берлоги ---------- */
+  .bear-bg {
+    position: absolute;
+    inset: -3% -7% 1%;
+    z-index: 0;
+    border-radius: 32px;
+    pointer-events: none;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.015);
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+
+  .bear-wrap[data-bg="campfire"] .bear-bg {
+    background:
+      radial-gradient(60% 42% at 50% 96%, rgba(255, 140, 48, 0.55), transparent 72%),
+      radial-gradient(90% 80% at 50% 15%, #16233f, #0a111d 78%);
+    border-color: rgba(255, 160, 70, 0.34);
+    box-shadow: inset 0 -28px 46px rgba(255, 110, 30, 0.22), 0 12px 34px rgba(0, 0, 0, 0.35);
+  }
+
+  .bear-wrap[data-bg="cyber"] .bear-bg {
+    background:
+      radial-gradient(70% 55% at 50% 22%, rgba(126, 120, 255, 0.32), transparent 70%),
+      linear-gradient(rgba(94, 234, 255, 0.13) 1px, transparent 1px) 0 0 / 22px 22px,
+      linear-gradient(90deg, rgba(255, 79, 216, 0.11) 1px, transparent 1px) 0 0 / 22px 22px,
+      linear-gradient(160deg, #221a44, #0a0e1c 78%);
+    border-color: rgba(94, 234, 255, 0.45);
+    box-shadow: 0 0 26px rgba(126, 120, 255, 0.35), inset 0 0 30px rgba(94, 234, 255, 0.14);
+  }
+
+  .bear-wrap[data-bg="apiary"] .bear-bg {
+    background:
+      radial-gradient(circle at 20% 18%, rgba(255, 221, 120, 0.36), transparent 44%),
+      radial-gradient(circle at 82% 72%, rgba(242, 184, 60, 0.3), transparent 48%),
+      linear-gradient(160deg, #3d2c11, #171006 78%);
+    border-color: rgba(242, 184, 60, 0.5);
+    box-shadow: inset 0 0 40px rgba(242, 184, 60, 0.18), 0 12px 34px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ---------- Надетые вещи ---------- */
+  .bear-wear {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 5;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 240 / 272;
+    pointer-events: none;
+    transform: scale(var(--bear-scale, 1));
+    transition: transform 0.1s ease;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+  }
+
+  .bear-wrap.is-tap .bear,
+  .bear-wrap.is-tap .bear-wear {
+    transform: scale(calc(var(--bear-scale, 1) * 0.93)) translateY(6px);
+  }
+
+  .wear { display: none; }
+  .bear-wrap[data-head="cap"] .wear-head-cap,
+  .bear-wrap[data-head="headphones"] .wear-head-headphones,
+  .bear-wrap[data-head="crown"] .wear-head-crown,
+  .bear-wrap[data-head="ushanka"] .wear-head-ushanka,
+  .bear-wrap[data-face="glasses"] .wear-face-glasses,
+  .bear-wrap[data-face="visor"] .wear-face-visor,
+  .bear-wrap[data-face="chain"] .wear-face-chain {
+    display: block;
+  }
+
+  /* Аксессуар гардероба главнее эмодзи-декора эволюции. */
+  .bear-wrap[data-head="cap"] .deco-crown,
+  .bear-wrap[data-head="cap"] .deco-bow,
+  .bear-wrap[data-head="headphones"] .deco-crown,
+  .bear-wrap[data-head="headphones"] .deco-bow,
+  .bear-wrap[data-head="crown"] .deco-crown,
+  .bear-wrap[data-head="crown"] .deco-bow,
+  .bear-wrap[data-head="ushanka"] .deco-crown,
+  .bear-wrap[data-head="ushanka"] .deco-bow { display: none !important; }
+
+  .bear-wrap[data-face="glasses"] .deco-glasses,
+  .bear-wrap[data-face="visor"] .deco-glasses { display: none !important; }
+
+  /* ---------- Гардероб в шторке ---------- */
+  .wear-title {
+    margin: 12px 2px 8px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--honey-soft);
+  }
+
+  .wear-title:first-child { margin-top: 4px; }
+
+  .buy.equipped {
+    background: rgba(242, 184, 60, 0.16);
+    border: 1px solid rgba(242, 184, 60, 0.4);
+    color: var(--honey-soft);
+  }
+
+  /* ---------- Список ачивок ---------- */
+  .ach-card {
+    display: flex;
+    flex-direction: column;
+    max-height: 84dvh;
+  }
+
+  .ach-list {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 0 14px;
+    text-align: left;
+  }
+
+  .ach-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .ach-item.done {
+    background: rgba(242, 184, 60, 0.09);
+    border-color: rgba(242, 184, 60, 0.48);
+  }
+
+  .ach-item.claimed { opacity: 0.62; }
+
+  .ach-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border-radius: 12px;
+    background: rgba(242, 184, 60, 0.12);
+  }
+
+  .ach-info { flex: 1 1 auto; min-width: 0; }
+
+  .ach-name {
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+
+  .ach-sub {
+    margin-top: 2px;
+    font-size: 11.5px;
+    line-height: 1.3;
+    color: var(--muted);
+  }
+
+  .ach-item .buy { padding: 8px 10px; font-size: 12px; }
+
   @media (prefers-reduced-motion: reduce) {
     * {
       animation-duration: 0.001s !important;
@@ -1376,7 +1590,10 @@
 <div class="app">
   <header class="topbar">
     <div class="honey-pill"><span class="icon">🍯</span><span id="honey">0</span></div>
-    <button class="chest-btn" id="chestBtn" type="button" data-ready="0" title="Лесной сундук" aria-label="Открыть лесной сундук">🎁</button>
+    <div class="top-actions">
+      <button class="chest-btn" id="chestBtn" type="button" data-ready="0" title="Лесной сундук" aria-label="Открыть лесной сундук">🎁</button>
+      <button class="icon-btn" id="achBtn" type="button" title="Ачивки" aria-label="Достижения">🏆<span class="count" id="achBadge" hidden>0</span></button>
+    </div>
     <button class="name-chip" id="nameBtn" type="button" title="Сменить ник">
       <span class="name-text" id="nameLabel">Игрок 1</span><span class="pen">✏️</span>
     </button>
@@ -1396,7 +1613,8 @@
       </div>
       <div class="evo-line">Эволюция: <b id="evoTitle">Медвежонок-сладкоежка</b></div>
 
-      <div class="bear-wrap" id="bearWrap">
+      <div class="bear-wrap" id="bearWrap" data-head="none" data-face="none" data-bg="forest">
+        <div class="bear-bg" aria-hidden="true"></div>
         <div class="bear-glow"></div>
         <div class="bonus-stack">
           <div class="duo-badge" id="duoBadge" hidden>🔥 Вы оба онлайн! Мёд ×2</div>
@@ -1426,6 +1644,73 @@
             <ellipse cx="157" cy="119" rx="10" ry="6" fill="#e0866d" opacity=".35" />
           </svg>
         </button>
+        <svg class="bear-wear" id="bearWear" viewBox="0 0 240 272" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffe89a" />
+              <stop offset="0.55" stop-color="#f2b83c" />
+              <stop offset="1" stop-color="#c98a12" />
+            </linearGradient>
+            <linearGradient id="visorGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#12263f" />
+              <stop offset="0.5" stop-color="#1b4c66" />
+              <stop offset="1" stop-color="#3a1450" />
+            </linearGradient>
+          </defs>
+
+          <!-- Головные уборы -->
+          <g class="wear wear-head-cap">
+            <path d="M62 76 Q62 30 120 30 Q178 30 178 76 Z" fill="#2f7dc4" stroke="#1d5a92" stroke-width="2" />
+            <path d="M64 72 Q40 82 28 102 Q52 98 76 90 Z" fill="#1f5f9c" />
+            <path d="M62 76 Q120 60 178 76 Q180 86 168 90 H72 Q60 86 62 76 Z" fill="#2568a6" />
+            <circle cx="120" cy="34" r="6" fill="#ffd75e" />
+          </g>
+
+          <g class="wear wear-head-headphones">
+            <path d="M60 104 Q60 32 120 32 Q180 32 180 104" fill="none" stroke="#3b4a63" stroke-width="9" stroke-linecap="round" />
+            <rect x="42" y="88" width="28" height="46" rx="14" fill="#2b3648" />
+            <rect x="170" y="88" width="28" height="46" rx="14" fill="#2b3648" />
+            <circle cx="56" cy="110" r="5" fill="#5eeaff" />
+            <circle cx="184" cy="110" r="5" fill="#5eeaff" />
+          </g>
+
+          <g class="wear wear-head-crown">
+            <path d="M78 60 L70 24 L96 40 L120 12 L144 40 L170 24 L162 60 Z" fill="url(#goldGrad)" stroke="#a8760c" stroke-width="2" stroke-linejoin="round" />
+            <circle cx="120" cy="40" r="5" fill="#e2601f" />
+            <circle cx="92" cy="47" r="3.5" fill="#7ef0ff" />
+            <circle cx="148" cy="47" r="3.5" fill="#7ef0ff" />
+          </g>
+
+          <g class="wear wear-head-ushanka">
+            <path d="M66 64 Q66 20 120 20 Q174 20 174 64 Z" fill="#6b4f3a" stroke="#4d3727" stroke-width="2" />
+            <path d="M58 56 H182 Q188 56 188 65 Q188 74 182 74 H58 Q52 74 52 65 Q52 56 58 56 Z" fill="#a9866a" />
+            <path d="M54 70 Q38 92 46 120 Q60 126 72 112 L76 74 Z" fill="#8a6a4f" />
+            <path d="M186 70 Q202 92 194 120 Q180 126 168 112 L164 74 Z" fill="#8a6a4f" />
+            <circle cx="120" cy="34" r="5" fill="#a9866a" />
+          </g>
+
+          <!-- Очки и аксессуары -->
+          <g class="wear wear-face-glasses">
+            <rect x="76" y="87" width="40" height="25" rx="9" fill="#14171c" opacity=".94" />
+            <rect x="124" y="87" width="40" height="25" rx="9" fill="#14171c" opacity=".94" />
+            <path d="M116 98 h8" stroke="#14171c" stroke-width="5" />
+            <path d="M76 96 L58 91 M164 96 L182 91" stroke="#14171c" stroke-width="5" stroke-linecap="round" />
+            <path d="M84 92 l9 7" stroke="#ffffff" stroke-width="3" opacity=".35" stroke-linecap="round" />
+            <path d="M132 92 l9 7" stroke="#ffffff" stroke-width="3" opacity=".35" stroke-linecap="round" />
+          </g>
+
+          <g class="wear wear-face-visor">
+            <rect x="56" y="83" width="128" height="31" rx="15" fill="url(#visorGrad)" stroke="#5eeaff" stroke-width="2" opacity=".94" />
+            <path d="M68 93 H100" stroke="#eaffff" stroke-width="4" opacity=".8" stroke-linecap="round" />
+            <path d="M134 102 h28" stroke="#7ef0ff" stroke-width="3" opacity=".7" stroke-linecap="round" />
+          </g>
+
+          <g class="wear wear-face-chain">
+            <path d="M86 148 Q120 196 154 148" fill="none" stroke="url(#goldGrad)" stroke-width="7" stroke-linecap="round" />
+            <circle cx="120" cy="184" r="11" fill="url(#goldGrad)" stroke="#a8760c" stroke-width="2" />
+            <circle cx="120" cy="184" r="4" fill="#fff1b8" opacity=".8" />
+          </g>
+        </svg>
         <div class="bear-deco" aria-hidden="true">
           <span class="deco deco-bow">🎀</span>
           <span class="deco deco-scarf"></span>
@@ -1476,7 +1761,7 @@
       </div>
     </section>
 
-    <div class="version-badge" id="versionBadge">Версия: v14 • Кэш: чист</div>
+    <div class="version-badge" id="versionBadge">Версия: v15 • Кэш: чист</div>
   </main>
 
   <section class="sheet" id="sheet" aria-label="Меню">
@@ -1493,6 +1778,7 @@
   <nav class="tabbar">
     <button class="tab" data-tab="care" id="tabCare">🍲 <span>Уход</span></button>
     <button class="tab" data-tab="upgrade" id="tabUpgrade">🛠 <span>Прокачка</span></button>
+    <button class="tab" data-tab="wardrobe" id="tabWardrobe">👕 <span>Шмот</span></button>
   </nav>
 
   <div class="bee-layer" id="beeLayer" aria-hidden="true"></div>
@@ -1568,6 +1854,17 @@
     <p>1. Нажми кнопку «Поделиться» (квадрат со стрелкой вверх) внизу Safari.</p>
     <p>2. Выбери «На экран Домой» — так заработают пуш-уведомления и полноэкранный режим.</p>
     <button class="btn btn-primary" id="iosClose">Понятно</button>
+  </div>
+</div>
+
+<!-- Ачивки -->
+<div class="overlay" id="achOverlay" hidden>
+  <div class="card ach-card">
+    <div class="emoji">🏆</div>
+    <h1>Ачивки</h1>
+    <p>Выполняй задания и забирай мёд. Награду можно забрать один раз.</p>
+    <div class="ach-list" id="achList"></div>
+    <button class="btn btn-primary" id="achClose" type="button">Закрыть</button>
   </div>
 </div>
 
@@ -1714,6 +2011,70 @@ window.addEventListener("DOMContentLoaded", function () {
     }
   ];
 
+  /* Гардероб: предметы покупаются за мёд (в дуо — с наценкой ×1.3)
+     и становятся общими для комнаты. */
+  const WARDROBE = [
+    {
+      slot: "head", title: "Головные уборы",
+      items: [
+        { id: "none", name: "Нет", icon: "🚫", price: 0 },
+        { id: "cap", name: "Кепка задом наперёд", icon: "🧢", price: 150 },
+        { id: "headphones", name: "Наушники геймера", icon: "🎧", price: 450 },
+        { id: "crown", name: "Корона хозяина тайги", icon: "👑", price: 1500 },
+        { id: "ushanka", name: "Ушанка", icon: "🧶", price: 800 }
+      ]
+    },
+    {
+      slot: "face", title: "Очки и аксессуары",
+      items: [
+        { id: "none", name: "Нет", icon: "🚫", price: 0 },
+        { id: "glasses", name: "Чёрные очки бати", icon: "🕶", price: 250 },
+        { id: "visor", name: "Неоновый кибер-визор", icon: "🥽", price: 1200 },
+        { id: "chain", name: "Золотая цепь", icon: "📿", price: 2000 }
+      ]
+    },
+    {
+      slot: "bg", title: "Фоны берлоги",
+      items: [
+        { id: "forest", name: "Уютный лес", icon: "🌲", price: 0 },
+        { id: "campfire", name: "Ночной костёр с искрами", icon: "🔥", price: 500 },
+        { id: "cyber", name: "Неоновый киберпанк", icon: "🌃", price: 1800 },
+        { id: "apiary", name: "Золотая пасека", icon: "🐝", price: 3500 }
+      ]
+    }
+  ];
+
+  const DEFAULT_EQUIPPED = { head: "none", face: "none", bg: "forest" };
+
+  /* Ачивки: условие считается по статистике комнаты и уровням. */
+  const ACHIEVEMENTS = [
+    { id: "first-steps", name: "Первые шаги", icon: "👣", desc: "Сделать 100 тапов", goal: 100, reward: 100, progress: function () { return state.stats.taps; } },
+    { id: "honey-baron", name: "Мёдовый барон", icon: "💰", desc: "Накопить 2 500 мёда за всё время", goal: 2500, reward: 400, progress: function () { return state.stats.honeyEarned; } },
+    { id: "calloused-paws", name: "Мозоли на лапах", icon: "🐾", desc: "Сделать 2 000 тапов", goal: 2000, reward: 800, progress: function () { return state.stats.taps; } },
+    { id: "caring-owner", name: "Заботливый хозяин", icon: "🍲", desc: "Покормить медведя 10 раз", goal: 10, reward: 350, progress: function () { return state.stats.feeds; } },
+    { id: "gourmet", name: "Гурман", icon: "🥩", desc: "Покормить медведя 30 раз", goal: 30, reward: 1000, progress: function () { return state.stats.feeds; } },
+    { id: "fashionista", name: "Модник", icon: "👕", desc: "Купить 3 любых предмета гардероба", goal: 3, reward: 600, progress: function () { return state.stats.purchases; } },
+    { id: "beekeeper", name: "Пчеловод-профи", icon: "🐝", desc: "Прокачать Пасеку до 5 уровня", goal: 5, reward: 750, progress: function () { return state.upgrades.hive || 0; } },
+    { id: "taiga-legend", name: "Легенда тайги", icon: "👑", desc: "Достичь 10 уровня медведя", goal: 10, reward: 2500, progress: function () { return levelInfo(state.exp).level; } }
+  ];
+
+  function itemById(id) {
+    for (let i = 0; i < WARDROBE.length; i++) {
+      const found = WARDROBE[i].items.find(function (item) { return item.id === id; });
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function isSlotItem(slot, id) {
+    const group = WARDROBE.find(function (item) { return item.slot === slot; });
+    return !!(group && group.items.some(function (item) { return item.id === id; }));
+  }
+
+  function achievementById(id) {
+    return ACHIEVEMENTS.find(function (item) { return item.id === id; }) || null;
+  }
+
   const SAVE_KEY = "bear:save";
   const PID_KEY = "bear:pid";
   // Ник живёт отдельно от сейва и не стирается авто-сбросом версии.
@@ -1772,6 +2133,12 @@ window.addEventListener("DOMContentLoaded", function () {
     sheetClose: $("sheetClose"),
     tabCare: $("tabCare"),
     tabUpgrade: $("tabUpgrade"),
+    tabWardrobe: $("tabWardrobe"),
+    achBtn: $("achBtn"),
+    achBadge: $("achBadge"),
+    achOverlay: $("achOverlay"),
+    achList: $("achList"),
+    achClose: $("achClose"),
     onboarding: $("onboarding"),
     obSolo: $("obSolo"),
     obCreate: $("obCreate"),
@@ -1878,6 +2245,10 @@ window.addEventListener("DOMContentLoaded", function () {
       room: null,
       upgrades: { paw: 0, hive: 0, den: 0, sleep: 0 },
       players: {},
+      unlockedItems: [],
+      equipped: { head: "none", face: "none", bg: "forest" },
+      stats: { taps: 0, honeyEarned: 0, feeds: 0, purchases: 0 },
+      claimedAchievements: {},
       log: [],
       updatedAt: Date.now(),
       lastTick: Date.now()
@@ -1917,6 +2288,39 @@ window.addEventListener("DOMContentLoaded", function () {
     if (raw.upgrades && typeof raw.upgrades === "object") {
       Object.keys(s.upgrades).forEach(function (key) {
         s.upgrades[key] = Math.max(0, Math.floor(num(raw.upgrades[key])));
+      });
+    }
+
+    // Старые комнаты не знают про гардероб и статистику — добавляем поля
+    // со значениями по умолчанию, не трогая уровень, мёд и игроков.
+    if (Array.isArray(raw.unlockedItems)) {
+      raw.unlockedItems.forEach(function (id) {
+        if (typeof id === "string" && itemById(id) && s.unlockedItems.indexOf(id) < 0) {
+          s.unlockedItems.push(id);
+        }
+      });
+    }
+
+    if (raw.equipped && typeof raw.equipped === "object") {
+      ["head", "face", "bg"].forEach(function (slot) {
+        if (isSlotItem(slot, raw.equipped[slot])) s.equipped[slot] = raw.equipped[slot];
+      });
+    }
+
+    if (raw.stats && typeof raw.stats === "object") {
+      s.stats.taps = Math.max(0, Math.floor(num(raw.stats.taps)));
+      s.stats.honeyEarned = Math.max(0, num(raw.stats.honeyEarned));
+      s.stats.feeds = Math.max(0, Math.floor(num(raw.stats.feeds)));
+      s.stats.purchases = Math.max(0, Math.floor(num(raw.stats.purchases)));
+    }
+
+    if (raw.claimedAchievements && typeof raw.claimedAchievements === "object") {
+      Object.keys(raw.claimedAchievements).forEach(function (pid) {
+        const list = raw.claimedAchievements[pid];
+        if (!Array.isArray(list)) return;
+        s.claimedAchievements[pid] = list.filter(function (id) {
+          return typeof id === "string" && !!achievementById(id);
+        }).slice(0, 20);
       });
     }
 
@@ -2109,7 +2513,9 @@ window.addEventListener("DOMContentLoaded", function () {
       const awakeTime = Math.min(capped, state.satiety / decay);
       state.satiety = Math.max(0, state.satiety - decay * capped);
       if (state.upgrades.hive > 0) {
-        state.honey += state.upgrades.hive * BALANCE.hiveRate * awakeTime;
+        const income = state.upgrades.hive * BALANCE.hiveRate * awakeTime;
+        state.honey += income;
+        state.stats.honeyEarned += income;
       }
     }
   }
@@ -2908,6 +3314,7 @@ window.addEventListener("DOMContentLoaded", function () {
     if (roll < 0.3) {
       const reward = Math.round(tapValue() * 60);
       state.honey += reward;
+      state.stats.honeyEarned += reward;
       icon = "🍯";
       title = "Мешочек мёда";
       desc = "+" + reward + " мёда в копилку!";
@@ -2994,6 +3401,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
     const reward = Math.round(tapValue() * 40);
     state.honey += reward;
+    state.stats.honeyEarned += reward;
     state.energy = Math.min(maxEnergy(), state.energy + maxEnergy() * 0.3);
     addLog("🐝 " + playerName() + " поймал(а) золотую пчелу и получил(а) +" + reward + " мёда!", { system: true });
     toast("🐝 Золотая пчела! +" + reward + " мёда и +30% энергии");
@@ -3015,14 +3423,23 @@ window.addEventListener("DOMContentLoaded", function () {
      ============================================================ */
   let lastLowToast = 0;
 
+  // Анимация тапа: медведь и надетые аксессуары сжимаются вместе.
+  function pulseBearTap() {
+    els.bearBtn.classList.add("is-tap");
+    els.bearWrap.classList.add("is-tap");
+    setTimeout(function () {
+      els.bearBtn.classList.remove("is-tap");
+      els.bearWrap.classList.remove("is-tap");
+    }, 110);
+  }
+
   function onBearTap(event) {
     event.preventDefault();
     const now = Date.now();
     const cost = BALANCE.tapCost;
 
     if (state.energy < cost) {
-      els.bearBtn.classList.add("is-tap");
-      setTimeout(function () { els.bearBtn.classList.remove("is-tap"); }, 110);
+      pulseBearTap();
       if (now - lastLowToast > 2500) {
         toast("Медведь устал — энергия восстанавливается");
         lastLowToast = now;
@@ -3040,6 +3457,8 @@ window.addEventListener("DOMContentLoaded", function () {
     if (frenzy) mult *= 2;
     const gain = Math.round(tapValue() * mult);
     state.honey += gain;
+    state.stats.taps += 1;
+    state.stats.honeyEarned += gain;
 
     ensureMe();
     const me = state.players[myId];
@@ -3059,8 +3478,7 @@ window.addEventListener("DOMContentLoaded", function () {
     const y = (event.clientY || rect.top + rect.height / 2) - rect.top;
     floatText("+" + gain + (mult > 1 ? " ×" + mult : ""), x, y, mult > 1);
 
-    els.bearBtn.classList.add("is-tap");
-    setTimeout(function () { els.bearBtn.classList.remove("is-tap"); }, 110);
+    pulseBearTap();
 
     renderCore();
     push();
@@ -3087,6 +3505,7 @@ window.addEventListener("DOMContentLoaded", function () {
     }
     state.honey -= cost;
     state.satiety = Math.min(100, state.satiety + food.satiety);
+    state.stats.feeds += 1;
     addExp(food.exp);
     addLog("покормил(а): " + food.name);
     push();
@@ -3110,6 +3529,79 @@ window.addEventListener("DOMContentLoaded", function () {
     push();
     saveLocal();
     renderAll();
+  }
+
+  /* ---------- Гардероб ---------- */
+  function isUnlocked(item) {
+    return !item || item.price === 0 || state.unlockedItems.indexOf(item.id) >= 0;
+  }
+
+  function wearLog(item) {
+    addLog("👕 " + playerName() + " переодел(а) медведя: " + item.name, { system: true });
+  }
+
+  function buyWardrobeItem(slot, id) {
+    const item = itemById(id);
+    if (!item || !isSlotItem(slot, id)) return;
+
+    // Уже купленный (или бесплатный) предмет просто надеваем.
+    if (isUnlocked(item)) {
+      if (state.equipped[slot] === item.id) return;
+      state.equipped[slot] = item.id;
+      wearLog(item);
+      saveLocal();
+      push();
+      renderAll();
+      return;
+    }
+
+    const cost = price(item.price);
+    if (state.honey < cost) {
+      toast("Не хватает мёда — собери ещё");
+      return;
+    }
+
+    state.honey -= cost;
+    state.unlockedItems.push(item.id);
+    state.stats.purchases += 1;
+    state.equipped[slot] = item.id;
+    wearLog(item);
+    toast("Куплено: " + item.name);
+    saveLocal();
+    push();
+    renderAll();
+  }
+
+  /* ---------- Ачивки ---------- */
+  function myClaims() {
+    const list = state.claimedAchievements[myId];
+    return Array.isArray(list) ? list : [];
+  }
+
+  function achievementDone(a) {
+    return a.progress() >= a.goal;
+  }
+
+  function availableAchievements() {
+    return ACHIEVEMENTS.filter(function (a) {
+      return achievementDone(a) && myClaims().indexOf(a.id) < 0;
+    });
+  }
+
+  function claimAchievement(id) {
+    const a = achievementById(id);
+    if (!a || myClaims().indexOf(a.id) >= 0 || !achievementDone(a)) return;
+    ensureMe();
+    const list = myClaims().slice();
+    list.push(a.id);
+    state.claimedAchievements[myId] = list;
+    state.honey += a.reward;
+    state.stats.honeyEarned += a.reward;
+    addLog("🏆 " + playerName() + " выполнил(а) ачивку «" + a.name + "» и забрал(а) +" + a.reward + " мёда!", { system: true });
+    saveLocal();
+    push();
+    renderAll();
+    toast("🏆 " + a.name + ": +" + a.reward + " мёда!");
   }
 
   function createRoom() {
@@ -3177,6 +3669,13 @@ window.addEventListener("DOMContentLoaded", function () {
     els.evoTitle.textContent = evo.name;
     els.bearWrap.classList.remove("evo-1", "evo-2", "evo-3", "evo-4");
     els.bearWrap.classList.add(evo.cls);
+
+    // Надетые вещи и фон берлоги синхронизируются с комнатой.
+    const equipped = state.equipped || DEFAULT_EQUIPPED;
+    els.bearWrap.dataset.head = equipped.head || "none";
+    els.bearWrap.dataset.face = equipped.face || "none";
+    els.bearWrap.dataset.bg = equipped.bg || "forest";
+    updateAchBadge();
     els.levelNum.textContent = "ур. " + info.level;
     els.nameLabel.textContent = playerName();
 
@@ -3305,7 +3804,8 @@ window.addEventListener("DOMContentLoaded", function () {
     if (!activeTab) return;
     lastSheetRender = Date.now();
     const care = activeTab === "care";
-    els.sheetTitle.textContent = care ? "Уход" : "Прокачка";
+    const wardrobe = activeTab === "wardrobe";
+    els.sheetTitle.textContent = care ? "Уход" : wardrobe ? "Гардероб" : "Прокачка";
     els.sheetList.innerHTML = "";
 
     if (care) {
@@ -3334,6 +3834,8 @@ window.addEventListener("DOMContentLoaded", function () {
         item.appendChild(makeButton("🍯 " + cost, state.honey < cost, function () { eat(food.id); }));
         els.sheetList.appendChild(item);
       });
+    } else if (wardrobe) {
+      renderWardrobeSheet();
     } else {
       UPGRADES.forEach(function (upgrade) {
         const level = state.upgrades[upgrade.id] || 0;
@@ -3369,6 +3871,126 @@ window.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function renderWardrobeSheet() {
+    WARDROBE.forEach(function (group) {
+      const title = document.createElement("div");
+      title.className = "wear-title";
+      title.textContent = group.title;
+      els.sheetList.appendChild(title);
+
+      group.items.forEach(function (item) {
+        const unlocked = isUnlocked(item);
+        const equipped = state.equipped[group.slot] === item.id;
+        const cost = price(item.price);
+
+        const row = document.createElement("div");
+        row.className = "item";
+
+        const icon = document.createElement("div");
+        icon.className = "item-icon";
+        icon.textContent = item.icon;
+
+        const info = document.createElement("div");
+        info.className = "item-info";
+        const name = document.createElement("div");
+        name.className = "item-name";
+        name.textContent = item.name;
+        const sub = document.createElement("div");
+        sub.className = "item-sub";
+        if (item.price === 0) {
+          sub.textContent = equipped ? "Бесплатно · надето" : "Бесплатно";
+        } else if (equipped) {
+          sub.textContent = "Куплено · надето";
+        } else if (unlocked) {
+          sub.textContent = "Куплено · можно надеть";
+        } else {
+          sub.textContent = "Цена: " + cost + " мёда";
+        }
+        info.appendChild(name);
+        info.appendChild(sub);
+
+        let label;
+        let locked;
+        if (equipped) {
+          label = "✓ Надето";
+          locked = false;
+        } else if (unlocked) {
+          label = "Надеть";
+          locked = false;
+        } else {
+          label = "🍯 " + cost;
+          locked = state.honey < cost;
+        }
+
+        const btn = makeButton(label, locked, function () {
+          buyWardrobeItem(group.slot, item.id);
+        });
+        if (equipped) {
+          btn.classList.add("equipped");
+          btn.disabled = true;
+        }
+
+        row.appendChild(icon);
+        row.appendChild(info);
+        row.appendChild(btn);
+        els.sheetList.appendChild(row);
+      });
+    });
+  }
+
+  function updateAchBadge() {
+    const count = availableAchievements().length;
+    const badge = els.achBadge;
+    if (!badge) return;
+    badge.hidden = count <= 0;
+    badge.textContent = count > 9 ? "9+" : String(count);
+  }
+
+  function renderAchievements() {
+    if (!els.achList) return;
+    updateAchBadge();
+    els.achList.innerHTML = "";
+
+    ACHIEVEMENTS.forEach(function (a) {
+      const claimed = myClaims().indexOf(a.id) >= 0;
+      const done = achievementDone(a);
+
+      const row = document.createElement("div");
+      row.className = "ach-item" + (done && !claimed ? " done" : "") + (claimed ? " claimed" : "");
+
+      const icon = document.createElement("div");
+      icon.className = "ach-icon";
+      icon.textContent = a.icon;
+
+      const info = document.createElement("div");
+      info.className = "ach-info";
+      const name = document.createElement("div");
+      name.className = "ach-name";
+      name.textContent = a.name;
+      const sub = document.createElement("div");
+      sub.className = "ach-sub";
+      if (claimed) {
+        sub.textContent = a.desc + " · получено";
+      } else if (done) {
+        sub.textContent = a.desc + " · готово к награде";
+      } else {
+        sub.textContent = a.desc + " · " + Math.min(a.goal, Math.floor(a.progress())) + " / " + a.goal;
+      }
+      info.appendChild(name);
+      info.appendChild(sub);
+
+      const btn = makeButton(claimed ? "✓" : "Забрать " + a.reward, !done || claimed, function () {
+        claimAchievement(a.id);
+      });
+      btn.disabled = claimed || !done;
+
+      row.appendChild(icon);
+      row.appendChild(info);
+      row.appendChild(btn);
+      els.achList.appendChild(row);
+    });
+  }
+
   function renderAll() {
     renderCore();
     renderInvite();
@@ -3376,6 +3998,7 @@ window.addEventListener("DOMContentLoaded", function () {
     renderSheet();
     renderPushUi();
     refreshBonuses();
+    renderAchievements();
   }
 
   /* ============================================================
@@ -3385,6 +4008,7 @@ window.addEventListener("DOMContentLoaded", function () {
     activeTab = tab;
     els.tabCare.classList.toggle("active", tab === "care");
     els.tabUpgrade.classList.toggle("active", tab === "upgrade");
+    els.tabWardrobe.classList.toggle("active", tab === "wardrobe");
     renderSheet();
     els.sheet.classList.add("open");
   }
@@ -3394,6 +4018,7 @@ window.addEventListener("DOMContentLoaded", function () {
     els.sheet.classList.remove("open");
     els.tabCare.classList.remove("active");
     els.tabUpgrade.classList.remove("active");
+    els.tabWardrobe.classList.remove("active");
   }
 
   els.pushBtn.addEventListener("click", enablePush);
@@ -3404,6 +4029,9 @@ window.addEventListener("DOMContentLoaded", function () {
   });
   els.tabUpgrade.addEventListener("click", function () {
     if (activeTab === "upgrade") closeSheet(); else openTab("upgrade");
+  });
+  els.tabWardrobe.addEventListener("click", function () {
+    if (activeTab === "wardrobe") closeSheet(); else openTab("wardrobe");
   });
   els.sheetClose.addEventListener("click", closeSheet);
 
@@ -3642,6 +4270,15 @@ window.addEventListener("DOMContentLoaded", function () {
   });
   els.nameOverlay.addEventListener("click", function (event) {
     if (event.target === els.nameOverlay) closeNameDialog();
+  });
+
+  els.achBtn.addEventListener("click", function () {
+    renderAchievements();
+    els.achOverlay.hidden = false;
+  });
+  els.achClose.addEventListener("click", function () { els.achOverlay.hidden = true; });
+  els.achOverlay.addEventListener("click", function (event) {
+    if (event.target === els.achOverlay) els.achOverlay.hidden = true;
   });
 
   els.chestBtn.addEventListener("click", openChest);
