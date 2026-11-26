@@ -7,14 +7,16 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v11 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v12 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v11";
+    var APP_VERSION = "v12";
     var VERSION_KEY = "bear:app-version";
+    // Ключи bear:player-name (ник) и bear:pid не трогаем — сброс версии
+    // чистит только кэши и service worker'ы, ник должен остаться.
     var ONESIGNAL_DIR = "/tamagochi/";
     var ONESIGNAL_FILE = "/tamagochi/OneSignalSDKWorker.js";
 
@@ -224,10 +226,39 @@
     color: var(--muted);
     font-size: 12px;
     font-weight: 600;
-    max-width: 60%;
+    max-width: 34%;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+
+  .name-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: 34%;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .name-chip .name-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .name-chip .pen {
+    font-size: 11px;
+    opacity: 0.75;
+    flex: 0 0 auto;
   }
 
   .mode-chip.duo {
@@ -973,6 +1004,27 @@
     font-size: 14px;
   }
 
+  .name-input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 9px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid var(--line);
+    color: var(--text);
+    text-align: center;
+    font-weight: 700;
+    font-size: 16px;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .name-input::placeholder {
+    color: #5f7466;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
   .divider {
     display: flex;
     align-items: center;
@@ -1059,6 +1111,9 @@
 <div class="app">
   <header class="topbar">
     <div class="honey-pill"><span class="icon">🍯</span><span id="honey">0</span></div>
+    <button class="name-chip" id="nameBtn" type="button" title="Сменить ник">
+      <span class="name-text" id="nameLabel">Игрок 1</span><span class="pen">✏️</span>
+    </button>
     <div class="mode-chip" id="modeChip">Соло</div>
   </header>
 
@@ -1142,7 +1197,7 @@
       </div>
     </section>
 
-    <div class="version-badge" id="versionBadge">Версия: v11 • Кэш: чист</div>
+    <div class="version-badge" id="versionBadge">Версия: v12 • Кэш: чист</div>
   </main>
 
   <section class="sheet" id="sheet" aria-label="Меню">
@@ -1188,6 +1243,18 @@
     <button class="btn btn-primary" id="shareCopy">📋 Скопировать ссылку</button>
     <button class="btn btn-ghost" id="shareClose">Готово</button>
     <p class="note" id="shareNote"></p>
+  </div>
+</div>
+
+<!-- Никнейм игрока -->
+<div class="overlay" id="nameOverlay" hidden>
+  <div class="card">
+    <div class="emoji">✏️</div>
+    <h1>Как тебя зовут?</h1>
+    <p>Это имя увидит напарник — в комнате и в пуш-уведомлениях.</p>
+    <input class="name-input" id="nameInput" type="text" maxlength="15" placeholder="Например, Дима" autocomplete="nickname" autocapitalize="words" spellcheck="false" />
+    <p class="error-text" id="nameError"></p>
+    <button class="btn btn-primary" id="nameSave" type="button">Сохранить</button>
   </div>
 </div>
 
@@ -1266,7 +1333,8 @@ window.addEventListener("DOMContentLoaded", function () {
   // Прокси на Cloudflare Worker: принимает JSON и отправляет пуш в OneSignal
   // со своего сервера, поэтому REST-ключ живёт только там.
   const PUSH_PROXY_URL = "https://medved-notify.lihtenberg1337.workers.dev";
-  const POKE_COOLDOWN_MS = 30 * 60 * 1000;
+  // 15 секунд вместо 30 минут — чтобы быстро тестировать пуши в обе стороны.
+  const POKE_COOLDOWN_MS = 15 * 1000;
 
   const FIREBASE_READY =
     DB_CONFIG.provider === "firebase" &&
@@ -1329,6 +1397,8 @@ window.addEventListener("DOMContentLoaded", function () {
 
   const SAVE_KEY = "bear:save";
   const PID_KEY = "bear:pid";
+  // Ник живёт отдельно от сейва и не стирается авто-сбросом версии.
+  const NAME_KEY = "bear:player-name";
 
   /* ============================================================
      3) DOM
@@ -1387,6 +1457,12 @@ window.addEventListener("DOMContentLoaded", function () {
     shareLink: $("shareLink"),
     shareCopy: $("shareCopy"),
     shareClose: $("shareClose"),
+    nameBtn: $("nameBtn"),
+    nameLabel: $("nameLabel"),
+    nameOverlay: $("nameOverlay"),
+    nameInput: $("nameInput"),
+    nameError: $("nameError"),
+    nameSave: $("nameSave"),
     shareNote: $("shareNote"),
     toast: $("toast")
   };
@@ -1466,8 +1542,21 @@ window.addEventListener("DOMContentLoaded", function () {
     };
   }
 
+  function savedName() {
+    try {
+      const raw = localStorage.getItem(NAME_KEY);
+      return raw ? String(raw).replace(/\s+/g, " ").trim().slice(0, 15) : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function cleanName(value) {
+    return String(value || "").replace(/\s+/g, " ").trim().slice(0, 15);
+  }
+
   function newPlayer() {
-    return { name: "Игрок 1", taps: 0, honey: 0, joinedAt: Date.now(), pushId: "" };
+    return { name: savedName() || "Игрок 1", taps: 0, honey: 0, joinedAt: Date.now(), pushId: "" };
   }
 
   function normalize(raw) {
@@ -1843,14 +1932,19 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   function ensureMe() {
-    if (state.players[myId]) return;
+    const stored = savedName();
+    if (state.players[myId]) {
+      // Сохранённый ник — главный: подтягиваем его в свою запись.
+      if (stored && state.players[myId].name !== stored) state.players[myId].name = stored;
+      return;
+    }
     const used = Object.keys(state.players).map(function (pid) { return state.players[pid].name; });
     let name = "Игрок 1";
     for (let i = 1; i <= 8; i++) {
       if (!used.includes("Игрок " + i)) { name = "Игрок " + i; break; }
     }
     state.players[myId] = {
-      name: name, taps: 0, honey: 0, joinedAt: Date.now(),
+      name: stored || name, taps: 0, honey: 0, joinedAt: Date.now(),
       pushId: os.subscriptionId ? String(os.subscriptionId) : ""
     };
   }
@@ -2183,7 +2277,7 @@ window.addEventListener("DOMContentLoaded", function () {
         var data = null;
         try { data = body ? JSON.parse(body) : null; } catch (e) { data = null; }
 
-        if (res.ok) return { ok: true, error: "" };
+        if (res.ok) return { ok: true, error: "", data: data || {} };
 
         var detail;
         if (data && data.errors) detail = JSON.stringify(data.errors);
@@ -2228,7 +2322,7 @@ window.addEventListener("DOMContentLoaded", function () {
       return;
     }
     if (pokeCooldownLeft() > 0) {
-      toast("Напарника можно звать раз в 30 минут");
+      toast("Напарника можно звать раз в 15 секунд");
       return;
     }
     if (!pushConfigured()) {
@@ -2242,15 +2336,24 @@ window.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    const myName = playerName() || "Игрок";
     els.pokeBtn.disabled = true;
-    sendPush(ids, "Медведь соскучился! Напарник зовёт тебя потапать 🐻").then(function (result) {
+    sendPush(ids, "Медведь соскучился! " + myName + " зовёт тебя потапать 🐻").then(function (result) {
       if (!result.ok) {
         els.pokeBtn.disabled = false;
         toast("Не удалось отправить пуш — " + result.error);
         return;
       }
       try { localStorage.setItem(pokeCooldownKey(), String(Date.now() + POKE_COOLDOWN_MS)); } catch (e) { /* noop */ }
-      toast("Позвали напарника 🐾");
+
+      const data = result.data || {};
+      const recipients = Number(data.recipients) || 0;
+      toast("🐾 Зов отправлен! (получателей: " + recipients + ")");
+      if (recipients === 0) {
+        setTimeout(function () {
+          toast("Напарник ещё не включил пуши на этой версии");
+        }, 2400);
+      }
       renderPushUi();
     });
   }
@@ -2259,7 +2362,7 @@ window.addEventListener("DOMContentLoaded", function () {
     if (state.mode !== "duo" || !sync.room || !pushConfigured()) return;
     const ids = partnerPushIds();
     if (!ids.length) return;
-    sendPush(ids, "Ура! Наш медведь достиг " + level + " уровня! 🎉");
+    sendPush(ids, "Ура! " + (playerName() || "Игрок") + " апнул(а) медведя до " + level + " уровня! 🎉");
   }
 
   function renderPushUi() {
@@ -2462,6 +2565,7 @@ window.addEventListener("DOMContentLoaded", function () {
     els.honey.textContent = fmt(state.honey);
     els.stage.textContent = stageFor(info.level);
     els.levelNum.textContent = "ур. " + info.level;
+    els.nameLabel.textContent = playerName();
 
     const maxE = maxEnergy();
     const energyPct = Math.min(100, (state.energy / maxE) * 100);
@@ -2551,7 +2655,9 @@ window.addEventListener("DOMContentLoaded", function () {
         const line = document.createElement("div");
         line.className = "log-line";
         const who = document.createElement("b");
-        who.textContent = entry.name + ":";
+        // Имя берём из живой записи игрока: после смены ника лента тоже обновится.
+        const livePlayer = state.players[entry.pid];
+        who.textContent = (livePlayer && livePlayer.name ? livePlayer.name : entry.name) + ":";
         const text = document.createElement("span");
         text.textContent = entry.text;
         line.appendChild(who);
@@ -2687,6 +2793,38 @@ window.addEventListener("DOMContentLoaded", function () {
   /* ============================================================
      11) ОВЕРЛЕИ
      ============================================================ */
+  /* ---------- Никнейм ---------- */
+  function openNameDialog() {
+    els.nameInput.value = playerName();
+    els.nameError.textContent = "";
+    els.nameOverlay.hidden = false;
+    setTimeout(function () {
+      try { els.nameInput.focus(); els.nameInput.select(); } catch (e) { /* noop */ }
+    }, 80);
+  }
+
+  function closeNameDialog() {
+    els.nameOverlay.hidden = true;
+  }
+
+  function savePlayerName() {
+    const name = cleanName(els.nameInput.value);
+    if (!name) {
+      els.nameError.textContent = "Ник не может быть пустым";
+      els.nameInput.focus();
+      return;
+    }
+    try { localStorage.setItem(NAME_KEY, name); } catch (e) { /* noop */ }
+    ensureMe();
+    if (state.players[myId]) state.players[myId].name = name;
+    els.nameError.textContent = "";
+    closeNameDialog();
+    saveLocal();
+    push();
+    renderAll();
+    toast("Привет, " + name + "!");
+  }
+
   function openOnboarding() {
     els.onboarding.hidden = false;
   }
@@ -2876,6 +3014,18 @@ window.addEventListener("DOMContentLoaded", function () {
 
   els.installBtn.addEventListener("click", onInstallClick);
   els.installClose.addEventListener("click", hideInstallHint);
+  els.nameBtn.addEventListener("click", function () { openNameDialog(); });
+  els.nameSave.addEventListener("click", savePlayerName);
+  els.nameInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.keyCode === 13) {
+      event.preventDefault();
+      savePlayerName();
+    }
+  });
+  els.nameOverlay.addEventListener("click", function (event) {
+    if (event.target === els.nameOverlay) closeNameDialog();
+  });
+
   els.iosClose.addEventListener("click", function () { els.iosOverlay.hidden = true; });
   els.iosOverlay.addEventListener("click", function (event) {
     if (event.target === els.iosOverlay) els.iosOverlay.hidden = true;
@@ -2942,6 +3092,10 @@ window.addEventListener("DOMContentLoaded", function () {
 
     renderAll();
     renderInstall();
+    // Первый вход без ника: сразу спрашиваем имя.
+    if (!savedName()) {
+      setTimeout(function () { openNameDialog(); }, 400);
+    }
     loadOneSignal();
     setInterval(tick, 250);
 
