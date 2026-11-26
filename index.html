@@ -7,13 +7,13 @@
 <meta http-equiv="Expires" content="0" />
 <script>
   /* АВТОСБРОС + ПЕРЕХВАТ РЕГИСТРАЦИИ SW (до загрузки остальных скриптов).
-     1)         При каждом открытии проверяет версию: если она не v13 — чистит ВСЕ кэши,
+     1)         При каждом открытии проверяет версию: если она не v14 — чистит ВСЕ кэши,
         снимает все сторонние service worker'ы (кроме OneSignal) и один раз
         перезагружает страницу с ?v=<Date.now()>, чтобы сбросить HTTP-кэш.
      2) Патчит navigator.serviceWorker.register: OneSignal не может просить scope
         "/" (корень домена) на GitHub Pages — подменяем путь и scope на /tamagochi/. */
   (function () {
-    var APP_VERSION = "v13";
+    var APP_VERSION = "v14";
     var VERSION_KEY = "bear:app-version";
     // Ключи bear:player-name (ник), bear:last-chest (таймер сундука),
     // bear:room:* (код комнаты) и bear:pid не трогаем — сброс версии
@@ -1476,7 +1476,7 @@
       </div>
     </section>
 
-    <div class="version-badge" id="versionBadge">Версия: v13 • Кэш: чист</div>
+    <div class="version-badge" id="versionBadge">Версия: v14 • Кэш: чист</div>
   </main>
 
   <section class="sheet" id="sheet" aria-label="Меню">
@@ -2277,8 +2277,9 @@ window.addEventListener("DOMContentLoaded", function () {
     state = remote;
     if (me && !state.players[myId]) state.players[myId] = me;
     if (!state.players[myId]) state.players[myId] = newPlayer();
-    // Если удалённая копия потеряла мой id подписки — возвращаем и дописываем.
-    if (me && me.pushId && !state.players[myId].pushId) {
+    // Мой pushId — источник истины: если напарник записал устаревшую копию,
+    // возвращаем актуальный id и сразу дописываем его в комнату.
+    if (me && me.pushId && state.players[myId].pushId !== me.pushId) {
       state.players[myId].pushId = me.pushId;
       push();
     }
@@ -2504,18 +2505,37 @@ window.addEventListener("DOMContentLoaded", function () {
     const sub = OneSignal.User && OneSignal.User.PushSubscription;
     if (!sub) return;
 
+    // Разрешение считаем выданным, если его подтвердил браузер или SDK.
+    const permissionGranted = function () {
+      const native = typeof Notification !== "undefined" && Notification.permission === "granted";
+      const sdk = !!(OneSignal.Notifications && OneSignal.Notifications.permission);
+      return native || sdk;
+    };
+
     const syncSubscription = function () {
       const id = typeof sub.id === "string" && sub.id ? sub.id : null;
+      const granted = permissionGranted();
       os.subscriptionId = id;
-      rememberPushId(id);
+      os.permission = granted;
+
+      // Разрешение есть, а подписка пустая или выключена — включаем принудительно.
+      if (granted && (!id || sub.optedIn === false)) {
+        try { sub.optIn(); } catch (e) { /* noop */ }
+      }
+
+      // subId — источник истины: всегда перезаписываем свой pushId в Firebase,
+      // потому что после очистки кэша или переустановки PWA он меняется.
+      rememberPushId(id, !!(id && granted));
       renderPushUi();
     };
 
-    os.permission = !!(OneSignal.Notifications && OneSignal.Notifications.permission);
-    if (os.permission) {
+    if (permissionGranted()) {
       try { sub.optIn(); } catch (e) { /* noop */ }
     }
     syncSubscription();
+    // На старте id подписки может появиться чуть позже — повторяем проверку.
+    setTimeout(syncSubscription, 1500);
+    setTimeout(syncSubscription, 5000);
 
     try { sub.addEventListener("change", syncSubscription); } catch (e) { /* noop */ }
     try {
@@ -2531,15 +2551,38 @@ window.addEventListener("DOMContentLoaded", function () {
 
   // Кладём id подписки в свою запись игрока в Firebase: второй игрок
   // видит его в state.players[pid].pushId и может отправить пуш.
-  function rememberPushId(id) {
+  // force = true: записываем pushId в Firebase принудительно, даже если локально
+  // он не изменился. Нужен при каждом запуске: после очистки кэша ID подписки
+  // обновляется, а в базе может остаться старый — пуш уходил в 0 получателей.
+  function rememberPushId(id, force) {
     ensureMe();
     const me = state.players[myId];
     if (!me) return;
     const value = id ? String(id) : "";
-    if ((me.pushId || "") === value) return;
+    if (!force && (me.pushId || "") === value) return;
     me.pushId = value;
     saveLocal();
-    if (state.mode === "duo" && sync.room) push();
+    if (state.mode === "duo" && sync.room) {
+      if (force && sync.backend === "firebase" && sync.ref) {
+        // Пишем только своё поле (плюс метку времени), не перетирая остальную
+        // комнату старой локальной копией. updatedAt нужен, чтобы напарник
+        // применил изменение сразу, а не ждал следующего полного пуша.
+        try {
+          const updates = {};
+          updates["players/" + myId + "/pushId"] = value;
+          updates.updatedAt = Date.now();
+          sync.ref.update(updates).catch(function (e) {
+            console.warn("Firebase pushId save error:", e);
+          });
+        } catch (e) {
+          console.warn("Firebase pushId save error:", e);
+        }
+      } else if (force) {
+        pushNow();
+      } else {
+        push();
+      }
+    }
   }
 
   function enablePush() {
@@ -2644,8 +2687,20 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   function sendPush(subscriptionIds, text) {
-    if (!pushConfigured() || !subscriptionIds.length) {
-      return Promise.resolve({ ok: false, error: "пуш не настроен или нет подписок" });
+    const ids = Array.isArray(subscriptionIds) ? subscriptionIds : [];
+    if (!ids.length) {
+      toast("У напарника ещё не привязан ID уведомлений (пусть обновит страницу и нажмёт Включить уведомления)");
+      return Promise.resolve({ ok: false, error: "нет id подписки напарника" });
+    }
+    if (!pushConfigured()) {
+      return Promise.resolve({ ok: false, error: "пуш не настроен" });
+    }
+
+    // Короткие префиксы для сверки: полный ID в логи не пишем.
+    if (window.console && console.info) {
+      console.info("Bear push → partner ids:", ids.map(function (id) {
+        return String(id).slice(0, 6) + "…";
+      }).join(", "));
     }
 
     return fetch(PUSH_PROXY_URL, {
@@ -2657,7 +2712,7 @@ window.addEventListener("DOMContentLoaded", function () {
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
         target_channel: "push",
-        include_subscription_ids: subscriptionIds,
+        include_subscription_ids: ids,
         headings: { en: "Медведь-Тамагочи", ru: "Медведь-Тамагочи" },
         contents: { en: text, ru: text },
         url: roomLink(state.room || "")
@@ -2723,7 +2778,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
     const ids = partnerPushIds();
     if (!ids.length) {
-      toast("У напарника нет пуш-подписки — пусть включит уведомления");
+      toast("У напарника ещё не привязан ID уведомлений (пусть обновит страницу и нажмёт Включить уведомления)");
       return;
     }
 
